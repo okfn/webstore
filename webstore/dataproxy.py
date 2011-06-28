@@ -37,13 +37,6 @@ configfile = '/var/www/scraperwiki/uml/uml.cfg'
 config = ConfigParser.ConfigParser()
 config.readfp(open(configfile))
 
-parser = optparse.OptionParser()
-parser.add_option("--setuid", action="store_true")
-parser.add_option("--pidfile")
-parser.add_option("--logfile")
-parser.add_option("--toaddrs", default="")
-poptions, pargs = parser.parse_args()
-
 class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     __base         = BaseHTTPServer.BaseHTTPRequestHandler
     __base_handle  = __base.handle
@@ -101,7 +94,10 @@ class ProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     dataauth = "fromfrontend"
             
             else:
-                runID, short_name = self.ident(params['uml'], params['port'])
+                # TODO: reinstate this once understand what is going on
+                # runID, short_name = self.ident(params['uml'], params['port'])
+                runID = '1'
+                short_name = ''
                 if not runID:
                     firstmessage = {"error":"ident failed no runID"}
                 elif runID[:8] == "draft|||" and short_name:
@@ -170,6 +166,12 @@ class ProxyHTTPServer(SocketServer.ForkingMixIn, BaseHTTPServer.HTTPServer):
     pass
 
 if __name__ == '__main__':
+    parser = optparse.OptionParser()
+    parser.add_option("--setuid", action="store_true")
+    parser.add_option("--pidfile")
+    parser.add_option("--logfile")
+    parser.add_option("--toaddrs", default="")
+    poptions, pargs = parser.parse_args()
 
     # daemon mode
     if os.fork() == 0 :
