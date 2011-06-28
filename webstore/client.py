@@ -1,6 +1,9 @@
 import re
 import datetime
-import scraperwiki
+
+# HACK: backwards compatibility with sw code
+def dumpMessage(mydict):
+    pass
 
 class SqliteError(Exception):  pass
 class NoSuchTableSqliteError(SqliteError):  pass
@@ -32,7 +35,7 @@ def ifsencode_trunc(v, t):
 
 def execute(sqlquery, data=None, verbose=1):
     global attachlist
-    result = scraperwiki.datastore.request({"maincommand":'sqliteexecute', "sqlquery":sqlquery, "data":data, "attachlist":attachlist})
+    result = datastore_request({"maincommand":'sqliteexecute', "sqlquery":sqlquery, "data":data, "attachlist":attachlist})
     if "error" in result:
         raise databaseexception(result)
     if "status" not in result and "keys" not in result:
@@ -48,7 +51,7 @@ def execute(sqlquery, data=None, verbose=1):
             ldata = [ ifsencode_trunc(v, 50)  for v in data.values() ]
         else:
             ldata = [ str(data) ]
-        scraperwiki.dumpMessage({'message_type':'sqlitecall', 'command':'sqliteexecute', "val1":sqlquery, "lval2":ldata})
+        dumpMessage({'message_type':'sqlitecall', 'command':'sqliteexecute', "val1":sqlquery, "lval2":ldata})
     
     return result
     
@@ -117,7 +120,7 @@ def save(unique_keys, data, table_name="swdata", verbose=2, date=None):
             if ljdata.get("error"):
                 raise databaseexception(ljdata)
             rjdata.append(ljdata)
-    result = scraperwiki.datastore.request({"maincommand":'save_sqlite', "unique_keys":unique_keys, "data":rjdata, "swdatatblname":table_name})
+    result = datastore_request({"maincommand":'save_sqlite', "unique_keys":unique_keys, "data":rjdata, "swdatatblname":table_name})
 
     if "error" in result:
         raise databaseexception(result)
@@ -131,29 +134,29 @@ def save(unique_keys, data, table_name="swdata", verbose=2, date=None):
             for key, value in data[0].items():
                 pdata[strencode_trunc(key, 50)] = strencode_trunc(value, 50)
             pdata["number_records"] = "Number Records: %d" % len(data)
-        scraperwiki.dumpMessage({'message_type':'data', 'content': pdata})
+        dumpMessage({'message_type':'data', 'content': pdata})
     return result
 
 
 def attach(name, asname=None, verbose=1):
     global attachlist
     attachlist.append({"name":name, "asname":asname})
-    result = scraperwiki.datastore.request({"maincommand":'sqlitecommand', "command":"attach", "name":name, "asname":asname})
+    result = datastore_request({"maincommand":'sqlitecommand', "command":"attach", "name":name, "asname":asname})
     if "error" in result:
         raise databaseexception(result)
     if "status" not in result:
         raise Exception("possible signal timeout: "+str(result))
-        scraperwiki.dumpMessage({'message_type':'data', 'content': pdata})
+        dumpMessage({'message_type':'data', 'content': pdata})
     return result
 
 
 def commit(verbose=1):
-    result = scraperwiki.datastore.request({"maincommand":'sqlitecommand', "command":"commit"})
+    result = datastore_request({"maincommand":'sqlitecommand', "command":"commit"})
     if "error" in result:
         raise databaseexception(result)
     if "status" not in result:
         raise Exception("possible signal timeout: "+str(result))
-        scraperwiki.dumpMessage({'message_type':'data', 'content': pdata})
+        dumpMessage({'message_type':'data', 'content': pdata})
     return result    
     
 
@@ -198,6 +201,66 @@ def get_var(name, default=None, verbose=2):
         return default
     return data[0][0]
 
+## ========================================================
+## Core Comms with data server
+
+import  string
+import  socket
+import  urllib
+import  cgi
+import  datetime
+import  types
+import  socket
+import  re
+
+try   : import json
+except: import simplejson as json
+
+m_socket = None
+m_host = None
+m_port = None
+
+# make everything global to the module for simplicity as opposed to half in and half out of a single class
+def create(host, port):
+    global m_host
+    global m_port
+    m_host = host
+    m_port = int(port)
+
+# a \n delimits the end of the record.  you cannot read beyond it or it will hang
+def receiveoneline(socket):
+    sbuffer = [ ]
+    while True:
+        srec = socket.recv(1024)
+        if not srec:
+            dumpMessage({'message_type': 'chat', 'message':"socket from dataproxy has unfortunately closed"})
+            break
+        ssrec = srec.split("\n")  # multiple strings if a "\n" exists
+        sbuffer.append(ssrec.pop(0))
+        if ssrec:
+            break
+    line = "".join(sbuffer)
+    return line
 
 
+def ensure_connected():
+    global m_socket
+    if not m_socket:
+        m_socket = socket.socket()
+        m_socket.connect((m_host, m_port))
+        m_socket.sendall('GET /?uml=%s&port=%d HTTP/1.1\n\n' % (socket.gethostname(), m_socket.getsockname()[1]))
+        line = receiveoneline(m_socket)  # comes back with True, "Ok"
+        res = json.loads(line)
+        assert res.get("status") == "good", res
 
+def datastore_request(req):
+    ensure_connected()
+    m_socket.sendall(json.dumps(req)+'\n')
+    line = receiveoneline(m_socket)
+    return json.loads(line)
+
+
+def close():
+    m_socket.sendall('.\n')  # what's this for?
+    m_socket.close()
+    m_socket = None
