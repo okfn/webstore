@@ -46,8 +46,11 @@ class Database(object):
 
 class SQLiteDatabase(Database):
 
-    def __init__(self, ldataproxy, resourcedir, short_name, dataauth, runID):
-        self.dataproxy = ldataproxy  # this is just to give access to self.dataproxy.connection.send()
+    def __init__(self, client_write, resourcedir, short_name, dataauth, runID):
+        # TODO: remove at some point
+        # old scraperwiki setup
+        # self.dataproxy = ldataproxy.connection.sendall
+        self.client_write = client_write
         self.m_resourcedir = resourcedir
         self.short_name = short_name
         self.dataauth = dataauth
@@ -61,6 +64,13 @@ class SQLiteDatabase(Database):
         self.scraperresourcedir = os.path.join(self.m_resourcedir, self.short_name)
 
         self.logger = logging.getLogger('dataproxy')
+
+    def _write(self, data):
+        '''Write data back to client system'''
+        # TODO: delete at some point
+        # old scraperwiki
+        # self.dataproxy.connection.sendall(json.dumps(arg)+'\n')
+        self.client_write(data)
 
     def process(self, request):
         if type(request) != dict:
@@ -220,7 +230,7 @@ class SQLiteDatabase(Database):
                     break
                 arg["moredata"] = True
                 self.logger.debug("midchunk %s %d" % (self.short_name, len(data)))
-                self.dataproxy.connection.sendall(json.dumps(arg)+'\n')
+                self._write(json.dumps(arg)+'\n')
             return arg
 
         
