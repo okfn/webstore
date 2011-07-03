@@ -16,11 +16,12 @@ Run tests (start server first!)::
 API
 ===
 
-Current:
+Current::
 
-/?owner=...&database=...&data={jsondict}
+    /?owner=...&database=...&data={jsondict}
 
-Options:
+Options::
+
     /?data={json-data}
     /jsonrpc
 
@@ -30,32 +31,34 @@ Proposed
 Read
 ~~~~
 
-GET: /{owner}/{db-name}/?sql=...
-GET: /{owner}/{db-name}/?table=...&attr=value&attr=value&limit=...
+Two basic ways to query::
 
-Returns: 
+    GET: /{owner}/{db-name}/?sql=...
+    GET: /{owner}/{db-name}/?table=...&attr=value&attr=value&limit=...
 
-{
-    u'keys': [u'id', u'name'],
-    u'data': [
-        [1, u'jones'],
-        [u'aaa', u'jones']
-        ]
-}
+Returns::
+
+  {
+      u'keys': [u'id', u'name'],
+      u'data': [
+          [1, u'jones'],
+          [u'aaa', u'jones']
+          ]
+  }
 
 Write
 ~~~~~
 
-POST to:
+POST to::
 
-/{owner/{database}/{table}
+    /{owner/{database}/{table}
 
-Payload is json data structured as follows:
+Payload is json data structured as follows::
 
-{
-    unique_keys: [list of key attributes]
-    data: {dict of values}
-}
+  {
+      unique_keys: [list of key attributes]
+      data: {dict of values}
+  }
 
 
 Authentication and Authorization
@@ -66,8 +69,8 @@ Authentication: use basic auth header.
 
 Authorization:
 
-    * Default: all read, owner can write
-    * Restricted: owner can read and write, everyone can do nothing
+  * Default: all read, owner can write
+  * Restricted: owner can read and write, everyone can do nothing
 
 Possible future: config file can specify a python method (TODO: method
 signature)
@@ -76,7 +79,7 @@ signature)
 Integration with Other Systems
 ==============================
 
-Delegate authenatication to user database in some other system.
+TODO: Specify how to delegate authenatication to user database in some other system.
 
 
 Plan
