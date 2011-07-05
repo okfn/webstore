@@ -1,0 +1,25 @@
+<html>
+  <head>
+    <!-- TODO: rel='alternate' links -->
+  </head>
+  <body>
+    <table border="1">
+      <thead>
+        <tr>
+          {% for k in keys %}
+            <th>{{ k }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            {% for k in keys %}
+              <td>{{ row.get(k, '') }}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+<html>
+  <head>
+    <title>{{ message }}</title>
+    <!-- TODO: rel='alternate' links -->
+  </head>
+  <body>
+    <h1>{{ message }}</h1>
+
+    {% if url %}
+      <a href="{{ url }}">{{ url }}</a>
+    {% endif %}
+  </body>
+</html>
+
