@@ -59,15 +59,19 @@ def read(database, table, format=None):
         return render_message(request, 'No such table: %s' % table,
                 format, state='error', code=404)
     _table = db[table]
+    params = request.args.copy()
+    limit = params.pop('_limit', None)
+    offset = params.pop('_offset', None)
     try:
-        clause = _table.args_to_clause(request.args)
+        clause = _table.args_to_clause(params)
     except KeyError, ke:
         return render_message(request, 'Invalid filter: %s' % ke,
                 format, state='error', code=400)
-    q = _table.table.select(clause, limit=100)
-    rp = _table.bind.execute(q)
-    return render_table(request, _result_proxy(rp), 
-                        rp.keys(), format)
+    stmt = _table.table.select(clause, limit=int(limit) if limit else None, 
+                offset=int(offset) if offset else None)
+    results = _table.bind.execute(stmt)
+    return render_table(request, _result_proxy(results), 
+                        results.keys(), format)
 
 @app.route('/db/<database>/<table>.<format>', methods=['PUT'])
 @app.route('/db/<database>/<table>', methods=['PUT'])

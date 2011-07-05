@@ -3,7 +3,6 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy import Integer, UnicodeText
 from sqlalchemy.sql import and_
-from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import Table, MetaData, Column
 from migrate.versioning.util import construct_engine
 

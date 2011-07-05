@@ -13,7 +13,7 @@ Run the web server::
 
 Run tests (start server first!)::
 
-  nosetests test/test_api.py
+  python test/test_rest.py
 
 API
 ===
@@ -67,7 +67,7 @@ expect a list of single-level hashes::
 
 // TODO: PUT docs.
 
-To delete an entire table, simply issue an HTTP DELTE request::
+To delete an entire table, simply issue an HTTP DELETE request::
 
   DELETE /db/{db-name}/{table-name}
 

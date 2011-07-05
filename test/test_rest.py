@@ -82,6 +82,13 @@ class WebstoreTestCase(unittest.TestCase):
             headers={'Accept': JSON})
         body = json.loads(response.data)
         assert len(body) == len(JSON_FIXTURE), body
+    
+    def test_read_json_representation_with_limit_and_offset(self):
+        response = self.app.get('/db/fixtures/csv?_limit=2&_offset=2',
+            headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert body[0].get('place')=='Galway', body
+        assert body[1].get('place')=='Berkeley', body
 
     def test_read_csv_representation(self):
         response = self.app.get('/db/fixtures/csv',
