@@ -1,5 +1,7 @@
 import shutil
 import json
+from StringIO import StringIO
+from csv import DictReader
 import webstore.web as ws
 import unittest
 import tempfile
@@ -30,11 +32,11 @@ class WebstoreTestCase(unittest.TestCase):
         shutil.rmtree(ws.app.config['SQLITE_DIR'])
 
     def make_fixtures(self):
-        self.app.post('/db/fixtures/json',
-                headers={'Content-type': JSON}, 
+        self.app.post('/db/fixtures?table=json',
+                headers={'Accept': JSON}, 
                 data=json.dumps(JSON_FIXTURE))
-        self.app.post('/db/fixtures/csv',
-                headers={'Content-type': CSV}, 
+        self.app.post('/db/fixtures?table=csv',
+                headers={'Accept': CSV}, 
                 data=CSV_FIXTURE)
 
     def test_no_tables(self):
@@ -79,8 +81,15 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.get('/db/fixtures/json',
             headers={'Accept': JSON})
         body = json.loads(response.data)
-        assert len(body)==len(JSON_FIXTURE), body
+        assert len(body) == len(JSON_FIXTURE), body
 
+    def test_read_csv_representation(self):
+        response = self.app.get('/db/fixtures/csv',
+            headers={'Accept': CSV})
+        reader = DictReader(StringIO(response.data))
+        flds = ['__id__', 'date', 'place', 'temperature']
+        assert reader.fieldnames == flds, reader.fieldnames
+        assert len(list(reader))==6
 
 
 if __name__ == '__main__':

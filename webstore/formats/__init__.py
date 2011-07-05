@@ -60,8 +60,8 @@ def request_format(request, fmt):
     """
     if fmt in MIME_TYPES.values():
         return fmt
-    if request.content_type in MIME_TYPES:
-        return MIME_TYPES.get(request.content_type)
+    #if request.content_type in MIME_TYPES:
+    #    return MIME_TYPES.get(request.content_type)
     return response_format(request, fmt)
 
 def read_request(request, format):

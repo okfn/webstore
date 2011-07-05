@@ -113,7 +113,6 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
         prefix = self.app.config.get('SQLITE_DIR', '/tmp')
         name = name.replace('.', '')
         path = os.path.join(prefix, name + '.db')
-        return DatabaseHandler(create_engine('sqlite:///' + path,
-                    poolclass=NullPool, strategy='threadlocal'))
+        return DatabaseHandler(create_engine('sqlite:///' + path))
 
 

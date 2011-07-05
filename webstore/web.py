@@ -64,7 +64,7 @@ def read(database, table, format=None):
     except KeyError, ke:
         return render_message(request, 'Invalid filter: %s' % ke,
                 format, state='error', code=400)
-    q = _table.table.select(clause) #, limit=100)
+    q = _table.table.select(clause, limit=100)
     rp = _table.bind.execute(q)
     return render_table(request, _result_proxy(rp), 
                         rp.keys(), format)
