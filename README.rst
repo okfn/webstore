@@ -1,13 +1,15 @@
-webstore is a web-api enabled datastore backed onto sqlite or mongodb.
+webstore is a RESTful data store for tabular and table-like data. It can
+be used as a dynamic storage for table data, allowing filtered, partial 
+or full retrieval and format conversion.
 
 Requirements
 ============
 
-* Cyclone and twisted
+* Flask
 
 Run the web server::
 
-  python webstore/api.py
+  python webstore/web.py
 
 Run tests (start server first!)::
 
@@ -16,49 +18,83 @@ Run tests (start server first!)::
 API
 ===
 
-Current::
+Core Resource::
 
-    /?owner=...&database=...&data={jsondict}
+    /db/{db-name}/{table-name}
 
-Options::
+Table is the central exposed resource (databases are created on-the-fly
+and may in fact not actually be seperate databases, depending on the 
+backend vendor (e.g. we can use PostgreSQL Schemas to partition the
+table space and don't actually need to create distinct databases).
 
-    /?data={json-data}
-    /jsonrpc
+On the ``table`` resource, the following operations are supported.
 
-Proposed
---------
+Retrieval::
 
-Read
-~~~~
+  GET /db/{db-name}/{table-name}
 
-Two basic ways to query::
+Will read data. The desired representation should be specified as an
+``Accept`` header (text/csv, application/json or text/html). As a
+fallback, a file type suffix can also be used::
 
-    GET: /{owner}/{db-name}/?sql=...
-    GET: /{owner}/{db-name}/?table=...&attr=value&attr=value&limit=...
+  GET /db/{db-name}/{table-name}.csv
 
-Returns::
+The resource can also be filtered::
 
-  {
-      u'keys': [u'id', u'name'],
-      u'data': [
-          [1, u'jones'],
-          [u'aaa', u'jones']
-          ]
-  }
+  GET /db/{db-name}/{table-name}?column=value
 
-Write
-~~~~~
+Writing
+-------
 
-POST to::
+To create a new table, simply POST to the database::
 
-    /{owner/{database}/{table}
+  POST /db/{db-name}?table={table-name}
 
-Payload is json data structured as follows::
+The request must have an appropriate ``Content-type`` set. The entire
+request body is treated as payload. The desired table name is either
+given as a query parameter (see above) or by posting to a non-existent
+table::
 
-  {
-      unique_keys: [list of key attributes]
-      data: {dict of values}
-  }
+  POST /db/{db-name}/{table-name}
+
+If application/json is specified as the content type, webstore will 
+expect a list of single-level hashes::
+
+  [
+    {"column": "value", "other_column": "other value"},
+    {"column": "banana", "other_column": "split"}
+  ]
+
+// TODO: PUT docs.
+
+To delete an entire table, simply issue an HTTP DELTE request::
+
+  DELETE /db/{db-name}/{table-name}
+
+Please consider carefully before doing so because datakrishna gets angry
+when people delete data.
+
+Options (future development)
+----------------------------
+
+We could implement ScraperWikis RPC API as an extension in order to
+allow scrapers to write to the store directly::
+
+    /db/{db-name}/_swrpc?owner=...&database...&data={jsondict}
+
+Alternatively, we could implement a 'slurper' that downloads ScraperWiki 
+result data and loads it into webstore.
+
+Command-line usage
+------------------
+
+Uploading a spreadsheet::
+
+    curl --data-binary @myfile.csv -i -H "Content-type: text/csv" http://{host}/db/{db-name}?table={table-name}}
+
+Get a filtered JSON representation::
+
+    curl -i -H "Accept: application/json" http://localhost:5000/db/{db-name}/{table-name}?{col}={value}
 
 
 Authentication and Authorization
@@ -88,4 +124,10 @@ Plan
 * DONE. Import existing uml/dataproxy stuff as per Francis' info
 * DONE. Get some tests (use existing scraperwiki frontend code)
 * DONE. Replace webstore/dataproxy.py with something simpler (probably cyclone based).
+* TODO. Implement PUT support
+* TODO. Figure out a method to delete individual rows.
+* TODO. Find a nice way to address individual rows (sub-resources?)
+* TODO. File upload support, maybe with Excel import support.
+* TODO. Google Spreadsheet integration.
+
 
