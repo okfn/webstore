@@ -33,10 +33,10 @@ class WebstoreTestCase(unittest.TestCase):
 
     def make_fixtures(self):
         self.app.post('/db/fixtures?table=json',
-                headers={'Accept': JSON}, 
+                content_type=JSON,
                 data=json.dumps(JSON_FIXTURE))
         self.app.post('/db/fixtures?table=csv',
-                headers={'Accept': CSV}, 
+                content_type=CSV,
                 data=CSV_FIXTURE)
 
     def test_no_tables(self):
@@ -45,7 +45,7 @@ class WebstoreTestCase(unittest.TestCase):
 
     def test_create_json_table(self):
         response = self.app.post('/db/create_json_table?table=foo',
-                headers={'Content-type': JSON, 'Accept': JSON}, 
+                headers={'Accept': JSON}, content_type=JSON,
                 data=json.dumps(JSON_FIXTURE))
         body = json.loads(response.data)
         assert 'Successfully' in body['message'], body
@@ -54,7 +54,7 @@ class WebstoreTestCase(unittest.TestCase):
 
     def test_create_csv_table(self):
         response = self.app.post('/db/create_csv_table?table=foo',
-                headers={'Content-type': CSV, 'Accept': CSV}, 
+                headers={'Accept': CSV}, content_type=CSV,
                 data=CSV_FIXTURE)
         assert 'message,state,url' in response.data, response.data
         assert 'Successfully' in response.data, response.data
@@ -67,7 +67,7 @@ class WebstoreTestCase(unittest.TestCase):
 
     def test_cannot_overwrite_table(self):
         response = self.app.post('/db/fixtures/json',
-                headers={'Content-type': JSON, 'Accept': JSON}, 
+                headers={'Accept': JSON}, content_type=JSON,
                 data=json.dumps(JSON_FIXTURE))
         body = json.loads(response.data)
         assert response.status == "409 CONFLICT", response.status
