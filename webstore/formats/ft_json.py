@@ -1,13 +1,12 @@
-from json import dumps
+from json import dumps, loads
 
 from flask import Response
 
 def json_request(request):
-    if not request.json:
-        return 
-    if not isinstance(request.json, (list, tuple)):
-        yield request.json
-    for row in request.json:
+    json = loads(request.data)
+    if not isinstance(json, (list, tuple)):
+        yield json
+    for row in json:
         yield row
 
 def json_table(table, keys):

@@ -3,6 +3,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy import Integer, UnicodeText
 from sqlalchemy.sql import and_
+from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import Table, MetaData, Column
 from migrate.versioning.util import construct_engine
 
@@ -74,8 +75,7 @@ class TableHandler(object):
         guessed and created.
         """
         self._ensure_columns(row)
-        stmt = self.table.insert(row)
-        self.bind.execute(stmt)
+        self.bind.execute(self.table.insert(row))
 
     def args_to_clause(self, args):
         clauses = []
@@ -113,6 +113,7 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
         prefix = self.app.config.get('SQLITE_DIR', '/tmp')
         name = name.replace('.', '')
         path = os.path.join(prefix, name + '.db')
-        return DatabaseHandler(create_engine('sqlite:///' + path))
+        return DatabaseHandler(create_engine('sqlite:///' + path,
+                    poolclass=NullPool, strategy='threadlocal'))
 
 

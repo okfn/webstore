@@ -2,10 +2,10 @@ from StringIO import StringIO
 from csv import DictReader, writer, DictWriter
 
 from flask import Response
-from ilines import ilines
+#from ilines import ilines
 
 def csv_request(request):
-    reader = DictReader(ilines(request.stream))
+    reader = DictReader(request.stream)
     for row in reader:
         yield dict([(k, v.decode('utf-8')) for k,v in row.items()])
         if request.stream.is_exhausted:

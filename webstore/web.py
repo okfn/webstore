@@ -44,7 +44,8 @@ def create_named(database, table, format=None):
     _table = db[table]
     reader = read_request(request, format)
     for row in reader:
-        _table.add_row(row)
+        if len(row.keys()):
+            _table.add_row(row)
     _table.commit()
     return render_message(request, 'Successfully created: %s' % table,
                 format, state='success', code=302,

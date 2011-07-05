@@ -1,7 +1,7 @@
 from flask import Flask
 
 from webstore import default_settings
-from wevstore.database import SQLiteDatabaseHandlerFactory
+from webstore.database import SQLiteDatabaseHandlerFactory
 
 app = Flask(__name__)
 app.config.from_object(default_settings)
