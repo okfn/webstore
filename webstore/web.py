@@ -1,4 +1,6 @@
 from flask import request, url_for
+from sqlalchemy.sql.expression import asc, desc
+from sqlalchemy.exc import OperationalError
 
 from webstore.core import app
 from webstore.formats import render_table, render_message
@@ -51,6 +53,7 @@ def create_named(database, table, format=None):
                 format, state='success', code=302,
                 url=url_for('read', database=database, table=table))
 
+
 @app.route('/db/<database>/<table>.<format>', methods=['GET'])
 @app.route('/db/<database>/<table>', methods=['GET'])
 def read(database, table, format=None):
@@ -62,14 +65,31 @@ def read(database, table, format=None):
     params = request.args.copy()
     limit = params.pop('_limit', None)
     offset = params.pop('_offset', None)
+    sorts = []
+    for sort in params.poplist('_sort'):
+        if not ':' in sort:
+            return render_message(request, 
+                'Invalid sorting format, use: order:column',
+                format, state='error', code=400)
+        order, column = sort.split(':', 1)
+        order = {'asc': asc, 'desc': desc}.get(order.lower(), 'asc')
+        sorts.append(order(column))
     try:
         clause = _table.args_to_clause(params)
     except KeyError, ke:
         return render_message(request, 'Invalid filter: %s' % ke,
                 format, state='error', code=400)
-    stmt = _table.table.select(clause, limit=int(limit) if limit else None, 
-                offset=int(offset) if offset else None)
-    results = _table.bind.execute(stmt)
+    try:
+        statement = _table.table.select(clause, limit=int(limit) if limit else None, 
+                offset=int(offset) if offset else None, order_by=sorts)
+    except ValueError, ve:
+        return render_message(request, 'Invalid value: %s' % ve,
+                format, state='error', code=400)
+    try:
+        results = _table.bind.execute(statement)
+    except OperationalError, oe:
+        return render_message(request, 'Invalid query: %s' % oe.message,
+                format, state='error', code=400)
     return render_table(request, _result_proxy(results), 
                         results.keys(), format)
 

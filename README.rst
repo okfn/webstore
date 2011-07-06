@@ -43,6 +43,19 @@ The resource can also be filtered::
 
   GET /db/{db-name}/{table-name}?column=value
 
+To limit the number of results or to specfiy an offset, use these query
+parameters::
+
+  GET /db/{db-name}/{table-name}?_limit=10&_offset=20
+
+The query can also be sorted, either as 'asc' (ascending order) or 'desc'
+(descending order)::
+
+  GET /db/{db-name}/{table-name}?_sort=asc:amount
+
+Note. It might be tempting to use '_asc' and '_desc' instead, but order
+is relevant and not provided for mixed query argument names in Werkzeug.
+
 Writing
 -------
 

@@ -97,6 +97,27 @@ class WebstoreTestCase(unittest.TestCase):
         flds = ['__id__', 'date', 'place', 'temperature']
         assert reader.fieldnames == flds, reader.fieldnames
         assert len(list(reader))==6
+    
+    def test_read_json_representation_invalid_limit(self):
+        response = self.app.get('/db/fixtures/csv?_limit=BANANA',
+            headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert response.status.startswith("400"), response.status
+        assert 'BANANA' in body.get('message'), body
+    
+    def test_read_json_representation_invalid_sort(self):
+        response = self.app.get('/db/fixtures/csv?_sort=theotherway',
+            headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert response.status.startswith("400"), response.status
+        assert 'Invalid sorting format' in body.get('message'), body
+    
+    def test_read_json_representation_sort(self):
+        response = self.app.get('/db/fixtures/csv?_sort=desc:temperature',
+            headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert body[0]['temperature'] == '8', body
+        assert body[0]['place'] == 'Berkeley', body
 
 
 if __name__ == '__main__':
