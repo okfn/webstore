@@ -119,6 +119,39 @@ class WebstoreTestCase(unittest.TestCase):
         assert body[0]['temperature'] == '8', body
         assert body[0]['place'] == 'Berkeley', body
 
+    def test_put_additional_row(self):
+        update = [{'place': 'Honolulu', 'climate': 'mild'}]
+        response = self.app.put('/db/fixtures/csv',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(update))
+        assert response.status.startswith("201"), response.status
+        response = self.app.get('/db/fixtures/csv?climate=mild',
+            headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert body[0]['place'] == 'Honolulu', body
+    
+    def test_put_additional_row_as_json_dict(self):
+        update = {'place': 'Honolulu', 'climate': 'mild'}
+        response = self.app.put('/db/fixtures/csv',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(update))
+        assert response.status.startswith("201"), response.status
+        response = self.app.get('/db/fixtures/csv?climate=mild',
+            headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert body[0]['place'] == 'Honolulu', body
+    
+    def test_put_additional_row_with_unique_selector(self):
+        update = [{'place': 'Berkeley', 'country': 'United States'}]
+        response = self.app.put('/db/fixtures/csv?unique=place',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(update))
+        assert response.status.startswith("201"), response.status
+        response = self.app.get('/db/fixtures/csv?place=Berkeley',
+            headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert body[0]['country'] == 'United States', body
+
 
 if __name__ == '__main__':
     unittest.main()

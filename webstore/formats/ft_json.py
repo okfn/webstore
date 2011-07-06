@@ -6,8 +6,9 @@ def json_request(request):
     json = loads(request.data)
     if not isinstance(json, (list, tuple)):
         yield json
-    for row in json:
-        yield row
+    else:
+        for row in json:
+            yield row
 
 def json_table(table, keys):
     table = [r for r in table]

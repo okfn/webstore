@@ -50,7 +50,7 @@ def create_named(database, table, format=None):
             _table.add_row(row)
     _table.commit()
     return render_message(request, 'Successfully created: %s' % table,
-                format, state='success', code=302,
+                format, state='success', code=201,
                 url=url_for('read', database=database, table=table))
 
 
@@ -96,7 +96,23 @@ def read(database, table, format=None):
 @app.route('/db/<database>/<table>.<format>', methods=['PUT'])
 @app.route('/db/<database>/<table>', methods=['PUT'])
 def update(database, table, format=None):
-    pass
+    db = app.db_factory.create(database)
+    if not table in db:
+        return render_message(request, 'No such table: %s' % table,
+                format, state='error', code=404)
+    _table = db[table]
+    unique = request.args.getlist('unique')
+    reader = read_request(request, format)
+    for row in reader:
+        if not len(row.keys()):
+            continue
+        if not _table.update_row(unique, row):
+            _table.add_row(row)
+    _table.commit()
+    return render_message(request, 'Table updated: %s' % table,
+                          format, state='success', code=201,
+                          url=url_for('read', database=database, table=table))
+
 
 @app.route('/db/<database>/<table>.<format>', methods=['DELETE'])
 @app.route('/db/<database>/<table>', methods=['DELETE'])

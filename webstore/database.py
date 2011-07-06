@@ -82,16 +82,19 @@ class TableHandler(object):
             clauses.append(self.table.c[k] == v)
         return and_(*clauses)
 
-    def update_row(self, whereclause, row):
-        """ Update a row (type: dict) based on whereclause.
+    def update_row(self, unique, row):
+        """ Update a row (type: dict) based on the unique keys.
 
         If any of the keys of the row are not table columns, they will 
         be type guessed and created.
         """
-        #TODO: analyze whereclause and generate index?
+        if not len(unique):
+            return False
+        clause = dict([(u, row.get(u)) for u in unique])
         self._ensure_columns(row)
-        stmt = self.table.update(whereclause, row)
-        self.bind.execute(stmt)
+        stmt = self.table.update(self.args_to_clause(clause), row)
+        rp = self.bind.execute(stmt)
+        return rp.rowcount > 0
 
 class DatabaseHandlerFactory(object):
     """ An engine factory will generate a database with

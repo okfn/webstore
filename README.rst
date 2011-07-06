@@ -78,7 +78,20 @@ expect a list of single-level hashes::
     {"column": "banana", "other_column": "split"}
   ]
 
-// TODO: PUT docs.
+To insert additional rows into a table or to update existing rows, 
+issue a PUT request with the same type of payload used for the 
+creation request::
+
+  PUT /db/{db-name}/{table-name}
+
+Without further arguments, this will insert new rows as necessary.
+If you want to update existing records, name the columns which are
+sufficient to uniquely identify the column(s) to be updated::
+
+  PUT /db/{db-name}/{table-name}?unique=id_colum&unique=date
+
+This will attempt to update the database and only create a new row
+if the update did not affect any existing records.
 
 To delete an entire table, simply issue an HTTP DELETE request::
 
