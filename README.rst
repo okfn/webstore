@@ -56,6 +56,11 @@ The query can also be sorted, either as 'asc' (ascending order) or 'desc'
 Note. It might be tempting to use '_asc' and '_desc' instead, but order
 is relevant and not provided for mixed query argument names in Werkzeug.
 
+For reference, one can also address each row of a given table at the
+following location::
+
+  GET /db/{db-name}/{table-name}/row/{line-number}
+
 Writing
 -------
 
