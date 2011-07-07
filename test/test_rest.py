@@ -173,6 +173,15 @@ class WebstoreTestCase(unittest.TestCase):
         assert body[0]['place'] == 'Galway', body
         assert body[0]['temperature'] == '0', body
 
+    def test_read_json_distinct_column(self):
+        response = self.app.get('/db/fixtures/json/distinct/not_a_column',
+            headers={'Accept': JSON})
+        assert response.status.startswith("404"), response.status
+        response = self.app.get('/db/fixtures/csv/distinct/place',
+            headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert response.status.startswith("200"), response.status
+        assert len(body)==2, body
 
 if __name__ == '__main__':
     unittest.main()

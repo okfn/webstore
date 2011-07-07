@@ -65,6 +65,13 @@ following location::
 
   GET /db/{db-name}/{table-name}/row/{line-number}
 
+Another useful function is the distinct subcollection: for any column in
+a table, this will return all values of the column exactly once::
+
+  GET /db/{db-name}/{table-name}/distinct/{column-name}
+
+For both `row` and `distinct`, query paramters such as sorting apply.
+
 Writing
 -------
 

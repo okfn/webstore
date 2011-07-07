@@ -1,6 +1,7 @@
 from flask import request, url_for
 from werkzeug.exceptions import HTTPException
 from sqlalchemy.sql.expression import asc, desc
+from sqlalchemy.sql.expression import select
 from sqlalchemy.exc import OperationalError
 
 from webstore.core import app
@@ -161,6 +162,26 @@ def row(database, table, row, format=None):
     select_args['offset'] = row-1
     try:
         statement = _table.table.select('', **select_args)
+        results = _table.bind.execute(statement)
+    except OperationalError, oe:
+        raise WebstoreException(request, 'Invalid query: %s' % oe.message,
+            format, state='error', code=400)
+    return render_table(request, _result_proxy_iterator(results), 
+                        results.keys(), format)
+
+@app.route('/db/<database>/<table>/distinct/<column>.<format>', methods=['GET'])
+@app.route('/db/<database>/<table>/distinct/<column>', methods=['GET'])
+def distinct(database, table, column, format=None):
+    _table = _get_table(database, table, format)
+    if not column in _table.table.columns:
+        raise WebstoreException(request, 
+                'No such column: %s' % column,
+                format, state='error', code=404)
+    params, select_args = _request_query(_table, request.args)
+    select_args['distinct'] = True
+    try:
+        # TODO: replace this with a group by? 
+        statement = select([_table.table.c[column]], **select_args)
         results = _table.bind.execute(statement)
     except OperationalError, oe:
         raise WebstoreException(request, 'Invalid query: %s' % oe.message,
