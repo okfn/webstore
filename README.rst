@@ -79,14 +79,14 @@ expect a list of single-level hashes::
   ]
 
 To insert additional rows into a table or to update existing rows, 
-issue a PUT request with the same type of payload used for the 
-creation request::
+issue a PUT request with the same type of payload used for table
+creation::
 
   PUT /db/{db-name}/{table-name}
 
 Without further arguments, this will insert new rows as necessary.
 If you want to update existing records, name the columns which are
-sufficient to uniquely identify the column(s) to be updated::
+sufficient to uniquely identify the row(s) to be updated::
 
   PUT /db/{db-name}/{table-name}?unique=id_colum&unique=date
 
