@@ -38,7 +38,7 @@ def _get_table(database, table, format):
                 format, state='error', code=404)
     return db[table]
 
-def _request_query(_table, _params, **queryargs):
+def _request_query(_table, _params):
     """ From a set of query parameters, apply those that
     affect a query result set, e.g. sorting, limiting and 
     offsets.
@@ -67,16 +67,7 @@ def _request_query(_table, _params, **queryargs):
         sorts.append(order(column))
 
     args = {'limit': limit, 'offset': offset, 'order_by': sorts}
-    args.update(queryargs)
-
-    def _query(whereclause):
-        try:
-            statement = _table.table.select(whereclause, **args)
-            return _table.bind.execute(statement)
-        except OperationalError, oe:
-            raise WebstoreException(request, 'Invalid query: %s' % oe.message,
-                format, state='error', code=400)
-    return params, _query
+    return params, args
 
 @app.route('/db/<database>.<format>', methods=['GET'])
 @app.route('/db/<database>', methods=['GET'])
@@ -136,13 +127,18 @@ def create_named(database, table, format=None):
 @app.route('/db/<database>/<table>', methods=['GET'])
 def read(database, table, format=None):
     _table = _get_table(database, table, format)
-    params, _query = _request_query(_table, request.args)
+    params, select_args = _request_query(_table, request.args)
     try:
         clause = _table.args_to_clause(params)
     except KeyError, ke:
         return render_message(request, 'Invalid filter: %s' % ke,
                 format, state='error', code=400)
-    results = _query(clause)
+    try:
+        statement = _table.table.select(clause, **select_args)
+        results = _table.bind.execute(statement)
+    except OperationalError, oe:
+        raise WebstoreException(request, 'Invalid query: %s' % oe.message,
+            format, state='error', code=400)
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
 
@@ -152,19 +148,25 @@ def row(database, table, row, format=None):
     _table = _get_table(database, table, format)
     try:
         row = int(row)
-        if row == 0:
-            raise WebstoreException(request, 
-                'Starting at offset 1 to allow header row',
-                format, state='error', code=400)
-        params, _query = _request_query(_table, request.args, 
-                    limit=1, offset=row-1)
-        results = _query('')
-        return render_table(request, _result_proxy_iterator(results), 
-                            results.keys(), format)
     except ValueError:
         raise WebstoreException(request, 
                 'Invalid row ID: %s' % row,
                 format, state='error', code=400)
+    if row == 0:
+        raise WebstoreException(request, 
+            'Starting at offset 1 to allow header row',
+            format, state='error', code=400)
+    params, select_args = _request_query(_table, request.args)
+    select_args['limit'] = 1
+    select_args['offset'] = row-1
+    try:
+        statement = _table.table.select('', **select_args)
+        results = _table.bind.execute(statement)
+    except OperationalError, oe:
+        raise WebstoreException(request, 'Invalid query: %s' % oe.message,
+            format, state='error', code=400)
+    return render_table(request, _result_proxy_iterator(results), 
+                        results.keys(), format)
 
 
 @app.route('/db/<database>/<table>.<format>', methods=['PUT'])
