@@ -38,6 +38,43 @@ def _get_table(database, table, format):
                 format, state='error', code=404)
     return db[table]
 
+def _request_query(_table, _params, **queryargs):
+    """ From a set of query parameters, apply those that
+    affect a query result set, e.g. sorting, limiting and 
+    offsets.
+
+    Returns a tuple of the remaining query parameters and
+    a curried call to the database.
+    """
+    params = _params.copy()
+    try:
+        limit = int(params.pop('_limit', None)) \
+                    if '_limit' in params else None
+        offset = int(params.pop('_offset', None)) \
+                    if '_offset' in params else None
+    except ValueError, ve:
+        raise WebstoreException(request, 'Invalid value: %s' % ve,
+                                format, state='error', code=400)
+
+    sorts = []
+    for sort in params.poplist('_sort'):
+        if not ':' in sort:
+            raise WebstoreException(request, 
+                'Invalid sorting format, use: order:column',
+                format, state='error', code=400)
+        order, column = sort.split(':', 1)
+        order = {'asc': asc, 'desc': desc}.get(order.lower(), 'asc')
+        sorts.append(order(column))
+    def _query(whereclause):
+        try:
+            statement = _table.table.select(whereclause, limit=limit, 
+                    offset=offset, order_by=sorts, **queryargs)
+            return _table.bind.execute(statement)
+        except OperationalError, oe:
+            raise WebstoreException(request, 'Invalid query: %s' % oe.message,
+                format, state='error', code=400)
+    return params, _query
+
 @app.route('/db/<database>.<format>', methods=['GET'])
 @app.route('/db/<database>', methods=['GET'])
 def index(database, format=None):
@@ -96,34 +133,13 @@ def create_named(database, table, format=None):
 @app.route('/db/<database>/<table>', methods=['GET'])
 def read(database, table, format=None):
     _table = _get_table(database, table, format)
-    params = request.args.copy()
-    limit = params.pop('_limit', None)
-    offset = params.pop('_offset', None)
-    sorts = []
-    for sort in params.poplist('_sort'):
-        if not ':' in sort:
-            return render_message(request, 
-                'Invalid sorting format, use: order:column',
-                format, state='error', code=400)
-        order, column = sort.split(':', 1)
-        order = {'asc': asc, 'desc': desc}.get(order.lower(), 'asc')
-        sorts.append(order(column))
+    params, _query = _request_query(_table, request.args)
     try:
         clause = _table.args_to_clause(params)
     except KeyError, ke:
         return render_message(request, 'Invalid filter: %s' % ke,
                 format, state='error', code=400)
-    try:
-        statement = _table.table.select(clause, limit=int(limit) if limit else None, 
-                offset=int(offset) if offset else None, order_by=sorts)
-    except ValueError, ve:
-        return render_message(request, 'Invalid value: %s' % ve,
-                format, state='error', code=400)
-    try:
-        results = _table.bind.execute(statement)
-    except OperationalError, oe:
-        return render_message(request, 'Invalid query: %s' % oe.message,
-                format, state='error', code=400)
+    results = _query(clause)
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
 

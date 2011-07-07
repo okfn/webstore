@@ -122,7 +122,7 @@ of a PUT request to the database with a content type of 'text/sql'::
 
 An example of using this could look like this::
 
-    curl -d "SELECT * FROM {table-name}" -i -H "Content-type: text/sql" http://{host}/db/{db-name}
+  curl -d "SELECT * FROM {table-name}" -i -H "Content-type: text/sql" http://{host}/db/{db-name}
 
 Note. This is database-specific, so you need to know whether you are
 speaking to a PostgreSQL or SQLite-backed webstore.
