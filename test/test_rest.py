@@ -26,6 +26,8 @@ class WebstoreTestCase(unittest.TestCase):
     def setUp(self):
         ws.app.config['SQLITE_DIR'] = tempfile.mkdtemp()
         ws.app.config['TESTING'] = True
+        ws.app.config['AUTHORIZATION']['world'] = \
+                ['read', 'write', 'delete']
         self.app = ws.app.test_client()
         self.make_fixtures()
 
@@ -39,13 +41,6 @@ class WebstoreTestCase(unittest.TestCase):
         self.app.post('/hugo/fixtures?table=csv',
                 content_type=CSV,
                 data=CSV_FIXTURE)
-
-    #def test_user_authentication(self):
-    #    response = self.app.get('/hugo/no_tables', 
-    #                headers={'Accept': JSON}, 
-    #                environ_base={'REMOTE_USER': 'hugo'})
-    #    assert False
-    #
 
     def test_no_tables(self):
         response = self.app.get('/hugo/no_tables', headers={'Accept': JSON})
@@ -216,6 +211,39 @@ class WebstoreTestCase(unittest.TestCase):
         body = json.loads(response.data)
         assert response.status.startswith("200"), response.status
         assert len(body)==2, body
+
+    def test_database_index_authorization(self):
+        # kill all permissions:
+        ws.app.config['AUTHORIZATION']['world'] = []
+        response = self.app.get('/hugo/fixtures', 
+                    headers={'Accept': JSON})
+        assert response.status.startswith("403"), response.status
+
+        ws.app.config['AUTHORIZATION']['user'] = []
+        response = self.app.get('/hugo/fixtures', 
+                    headers={'Accept': JSON}, 
+                    environ_base={'REMOTE_USER': 'bert'})
+        assert response.status.startswith("403"), response.status
+
+        response = self.app.get('/hugo/fixtures', 
+                    headers={'Accept': JSON}, 
+                    environ_base={'REMOTE_USER': 'hugo'})
+        assert not response.status.startswith("403"), response.status
+
+    def test_database_create_authorization(self):
+        record = [{'place': 'Honolulu', 'climate': 'mild'}]
+        ws.app.config['AUTHORIZATION']['world'] = []
+        response = self.app.post('/hugo/fixtures/authz', 
+                    headers={'Accept': JSON}, content_type=JSON, 
+                    data=json.dumps(record))
+        assert response.status.startswith("403"), response.status
+
+        ws.app.config['AUTHORIZATION']['world'] = ['write']
+        response = self.app.post('/hugo/fixtures/authz', 
+                    headers={'Accept': JSON}, content_type=JSON, 
+                    data=json.dumps(record))
+        assert response.status.startswith("201"), response.status
+
 
 if __name__ == '__main__':
     unittest.main()

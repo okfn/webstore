@@ -8,6 +8,7 @@ from webstore.formats import render_table, render_message
 from webstore.formats import read_request
 from webstore.helpers import WebstoreException
 from webstore.validation import NamingException
+from webstore.security import require
 
 def _result_proxy_iterator(rp):
     """ SQLAlchemy ResultProxies are not iterable to get a 
@@ -68,6 +69,7 @@ def _request_query(_table, _params):
 @app.route('/<user>/<database>', methods=['GET'])
 def index(user, database, format=None):
     """ Give a list of all tables in the database. """
+    require(user, database, 'read', format)
     db = app.db_factory.create(user, database)
     tables = []
     for table in db.engine.table_names():
@@ -80,6 +82,7 @@ def index(user, database, format=None):
 def sql(user, database, format=None):
     """ Execute an SQL statement on the database. """
     # TODO: do we really, really need this? 
+    require(user, database, 'delete', format)
     if request.content_type != 'text/sql':
         raise WebstoreException('Only text/sql content is supported',
                 format, state='error', code=400)
@@ -102,6 +105,7 @@ def create(user, database, format=None):
 @app.route('/<user>/<database>/<table>.<format>', methods=['POST'])
 @app.route('/<user>/<database>/<table>', methods=['POST'])
 def create_named(user, database, table, format=None):
+    require(user, database, 'write', format)
     try:
         db = app.db_factory.create(user, database)
     except NamingException, ne:
@@ -132,6 +136,7 @@ def create_named(user, database, table, format=None):
 @app.route('/<user>/<database>/<table>.<format>', methods=['GET'])
 @app.route('/<user>/<database>/<table>', methods=['GET'])
 def read(user, database, table, format=None):
+    require(user, database, 'read', format)
     _table = _get_table(user, database, table, format)
     params, select_args = _request_query(_table, request.args)
     try:
@@ -151,6 +156,8 @@ def read(user, database, table, format=None):
 @app.route('/<user>/<database>/<table>/row/<row>.<format>', methods=['GET'])
 @app.route('/<user>/<database>/<table>/row/<row>', methods=['GET'])
 def row(user, database, table, row, format=None):
+    require(user, database, 'read', format)
+    _table = _get_table(user, database, table, format)
     _table = _get_table(user, database, table, format)
     try:
         row = int(row)
@@ -176,6 +183,8 @@ def row(user, database, table, row, format=None):
 @app.route('/<user>/<database>/<table>/distinct/<column>.<format>', methods=['GET'])
 @app.route('/<user>/<database>/<table>/distinct/<column>', methods=['GET'])
 def distinct(user, database, table, column, format=None):
+    require(user, database, 'read', format)
+    _table = _get_table(user, database, table, format)
     _table = _get_table(user, database, table, format)
     if not column in _table.table.columns:
         raise WebstoreException('No such column: %s' % column,
@@ -196,8 +205,13 @@ def distinct(user, database, table, column, format=None):
 @app.route('/<user>/<database>/<table>.<format>', methods=['PUT'])
 @app.route('/<user>/<database>/<table>', methods=['PUT'])
 def update(user, database, table, format=None):
+    require(user, database, 'write', format)
+    _table = _get_table(user, database, table, format)
     _table = _get_table(user, database, table, format)
     unique = request.args.getlist('unique')
+    if len(unique):
+        require(user, database, 'delete', format)
+    _table = _get_table(user, database, table, format)
     reader = read_request(request, format)
     try:
         for row in reader:
@@ -216,6 +230,8 @@ def update(user, database, table, format=None):
 @app.route('/<user>/<database>/<table>.<format>', methods=['DELETE'])
 @app.route('/<user>/<database>/<table>', methods=['DELETE'])
 def delete(user, database, table, format=None):
+    require(user, database, 'delete', format)
+    _table = _get_table(user, database, table, format)
     _table = _get_table(user, database, table, format)
     _table.drop()
     _table.commit()
