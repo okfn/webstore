@@ -23,14 +23,16 @@ def _generator(table, callback):
             row = iter.next()
         except StopIteration:
             has_next = False
-        if not first: 
-            yield ', '
-        yield dumps(row)
+        if has_next:
+            if not first: 
+                yield ', '
+            yield dumps(row)
         first = False
     yield '])' if callback else ']'
 
 def json_table(table, keys):
-    return Response(_generator(table, str(g.callback)), mimetype='application/json',
+    callback = str(g.callback) if g.callback else None
+    return Response(_generator(table, callback), mimetype='application/json',
                     direct_passthrough=True)
 
 def json_message(message, state='error', url=None, code=200):
