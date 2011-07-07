@@ -2,10 +2,14 @@ webstore is a RESTful data store for tabular and table-like data. It can
 be used as a dynamic storage for table data, allowing filtered, partial 
 or full retrieval and format conversion.
 
-Requirements
+Installation
 ============
 
-* Flask
+Install the code and requirements (you may wish to create a virtualenv first)::
+
+  pip install -r pip-requirements.txt
+  # install webstore code
+  pip install -e .
 
 Run the web server::
 
