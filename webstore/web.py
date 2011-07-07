@@ -1,4 +1,4 @@
-from flask import request, url_for
+from flask import request, url_for, g
 from sqlalchemy.sql.expression import asc, desc
 from sqlalchemy.sql.expression import select
 from sqlalchemy.exc import OperationalError
@@ -26,6 +26,12 @@ def _get_table(database, table, format):
         raise WebstoreException('No such table: %s' % table,
                 format, state='error', code=404)
     return db[table]
+
+@app.before_request
+def check_authentication():
+    g.user = None
+    if 'REMOTE_USER' in request.environ:
+        g.user = request.environ['REMOTE_USER']
 
 def _request_query(_table, _params):
     """ From a set of query parameters, apply those that
@@ -58,20 +64,20 @@ def _request_query(_table, _params):
     args = {'limit': limit, 'offset': offset, 'order_by': sorts}
     return params, args
 
-@app.route('/db/<database>.<format>', methods=['GET'])
-@app.route('/db/<database>', methods=['GET'])
-def index(database, format=None):
+@app.route('/<user>/<database>.<format>', methods=['GET'])
+@app.route('/<user>/<database>', methods=['GET'])
+def index(user, database, format=None):
     """ Give a list of all tables in the database. """
     db = app.db_factory.create(database)
     tables = []
     for table in db.engine.table_names():
-        url = url_for('read', database=database, table=table)
+        url = url_for('read', user=user, database=database, table=table)
         tables.append({'name': table, 'url': url})
     return render_table(request, tables, ['name', 'url', 'columns'], format)
 
-@app.route('/db/<database>.<format>', methods=['PUT'])
-@app.route('/db/<database>', methods=['PUT'])
-def sql(database, format=None):
+@app.route('/<user>/<database>.<format>', methods=['PUT'])
+@app.route('/<user>/<database>', methods=['PUT'])
+def sql(user, database, format=None):
     """ Execute an SQL statement on the database. """
     # TODO: do we really, really need this? 
     if request.content_type != 'text/sql':
@@ -82,20 +88,20 @@ def sql(database, format=None):
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
 
-@app.route('/db/<database>.<format>', methods=['POST'])
-@app.route('/db/<database>', methods=['POST'])
-def create(database, format=None):
+@app.route('/<user>/<database>.<format>', methods=['POST'])
+@app.route('/<user>/<database>', methods=['POST'])
+def create(user, database, format=None):
     """ A table name needs to specified either as a query argument
     or as part of the URL. This will forward to the URL variant. """
     if not 'table' in request.args:
         return render_message('Missing argument: table',
                 format, state='error', code=400)
-    return create_named(database, request.args.get('table'), 
+    return create_named(user, database, request.args.get('table'), 
                         format=format)
 
-@app.route('/db/<database>/<table>.<format>', methods=['POST'])
-@app.route('/db/<database>/<table>', methods=['POST'])
-def create_named(database, table, format=None):
+@app.route('/<user>/<database>/<table>.<format>', methods=['POST'])
+@app.route('/<user>/<database>/<table>', methods=['POST'])
+def create_named(user, database, table, format=None):
     try:
         db = app.db_factory.create(database)
     except NamingException, ne:
@@ -104,7 +110,7 @@ def create_named(database, table, format=None):
     if table in db:
         raise WebstoreException('Table already exists: %s' % table,
                 format, state='error', code=409, 
-                url=url_for('read', database=database, table=table))
+                url=url_for('read', user=user, database=database, table=table))
     try:
         _table = db[table]
     except NamingException, ne:
@@ -121,11 +127,11 @@ def create_named(database, table, format=None):
     _table.commit()
     raise WebstoreException('Successfully created: %s' % table,
                 format, state='success', code=201,
-                url=url_for('read', database=database, table=table))
+                url=url_for('read', user=user, database=database, table=table))
 
-@app.route('/db/<database>/<table>.<format>', methods=['GET'])
-@app.route('/db/<database>/<table>', methods=['GET'])
-def read(database, table, format=None):
+@app.route('/<user>/<database>/<table>.<format>', methods=['GET'])
+@app.route('/<user>/<database>/<table>', methods=['GET'])
+def read(user, database, table, format=None):
     _table = _get_table(database, table, format)
     params, select_args = _request_query(_table, request.args)
     try:
@@ -142,9 +148,9 @@ def read(database, table, format=None):
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
 
-@app.route('/db/<database>/<table>/row/<row>.<format>', methods=['GET'])
-@app.route('/db/<database>/<table>/row/<row>', methods=['GET'])
-def row(database, table, row, format=None):
+@app.route('/<user>/<database>/<table>/row/<row>.<format>', methods=['GET'])
+@app.route('/<user>/<database>/<table>/row/<row>', methods=['GET'])
+def row(user, database, table, row, format=None):
     _table = _get_table(database, table, format)
     try:
         row = int(row)
@@ -167,9 +173,9 @@ def row(database, table, row, format=None):
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
 
-@app.route('/db/<database>/<table>/distinct/<column>.<format>', methods=['GET'])
-@app.route('/db/<database>/<table>/distinct/<column>', methods=['GET'])
-def distinct(database, table, column, format=None):
+@app.route('/<user>/<database>/<table>/distinct/<column>.<format>', methods=['GET'])
+@app.route('/<user>/<database>/<table>/distinct/<column>', methods=['GET'])
+def distinct(user, database, table, column, format=None):
     _table = _get_table(database, table, format)
     if not column in _table.table.columns:
         raise WebstoreException('No such column: %s' % column,
@@ -187,9 +193,9 @@ def distinct(database, table, column, format=None):
                         results.keys(), format)
 
 
-@app.route('/db/<database>/<table>.<format>', methods=['PUT'])
-@app.route('/db/<database>/<table>', methods=['PUT'])
-def update(database, table, format=None):
+@app.route('/<user>/<database>/<table>.<format>', methods=['PUT'])
+@app.route('/<user>/<database>/<table>', methods=['PUT'])
+def update(user, database, table, format=None):
     _table = _get_table(database, table, format)
     unique = request.args.getlist('unique')
     reader = read_request(request, format)
@@ -205,11 +211,11 @@ def update(database, table, format=None):
     _table.commit()
     raise WebstoreException('Table updated: %s' % table,
                             format, state='success', code=201,
-                            url=url_for('read', database=database, table=table))
+                            url=url_for('read', user=user, database=database, table=table))
 
-@app.route('/db/<database>/<table>.<format>', methods=['DELETE'])
-@app.route('/db/<database>/<table>', methods=['DELETE'])
-def delete(database, table, format=None):
+@app.route('/<user>/<database>/<table>.<format>', methods=['DELETE'])
+@app.route('/<user>/<database>/<table>', methods=['DELETE'])
+def delete(user, database, table, format=None):
     _table = _get_table(database, table, format)
     _table.drop()
     _table.commit()
