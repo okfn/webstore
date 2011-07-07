@@ -232,7 +232,6 @@ def update(user, database, table, format=None):
 def delete(user, database, table, format=None):
     require(user, database, 'delete', format)
     _table = _get_table(user, database, table, format)
-    _table = _get_table(user, database, table, format)
     _table.drop()
     _table.commit()
     raise WebstoreException('Table dropped: %s' % table,
