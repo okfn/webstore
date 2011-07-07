@@ -39,4 +39,10 @@ def require(user, database, action, format):
                 format, state='error', code=403)
 
 
+# These are for testing and can be used as mock authentication handlers.
+def always_login(user, password):
+    return True
+
+def never_login(user, password):
+    return False
 

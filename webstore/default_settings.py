@@ -9,3 +9,5 @@ AUTHORIZATION = {
     'user': ['read'],
     'world': ['read']
     }
+
+AUTH_FUNCTION = 'never_login'

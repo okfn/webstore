@@ -244,6 +244,24 @@ class WebstoreTestCase(unittest.TestCase):
                     data=json.dumps(record))
         assert response.status.startswith("201"), response.status
 
+    def test_login_challenge(self):
+        # kill all permissions:
+        response = self.app.get('/login', headers={'Accept': JSON})
+        assert response.status.startswith("401"), response.status
+
+    def test_login_http_basic_authorization(self):
+        ws.app.config['AUTH_FUNCTION'] = 'always_login'
+        auth = 'Basic ' + 'hugo:hungry'.encode('base64')
+        response = self.app.get('/hugo/fixtures', headers={'Accept': JSON,
+            'Authorization': auth})
+        assert response.status.startswith("200"), response.status
+        
+        ws.app.config['AUTH_FUNCTION'] = 'never_login'
+        auth = 'Basic ' + 'hugo:hungry'.encode('base64')
+        response = self.app.get('/hugo/fixtures', headers={'Accept': JSON,
+            'Authorization': auth})
+        assert response.status.startswith("401"), response.status
+
 
 if __name__ == '__main__':
     unittest.main()

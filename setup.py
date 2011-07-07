@@ -22,6 +22,11 @@ setup(
         'Programming Language :: Python',
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
+    entry_points = '''
+    [webstore.auth]
+    always_login = webstore.security:always_login
+    never_login = webstore.security:never_login
+    '''
 )
 
 

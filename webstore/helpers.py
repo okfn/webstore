@@ -1,3 +1,5 @@
+import pkg_resources
+
 from flask import request
 from werkzeug.exceptions import HTTPException
 
@@ -14,4 +16,10 @@ class WebstoreException(HTTPException):
 
     def get_response(self, environ):
         return self.response
+
+def entry_point_function(name, group):
+    """ Load a named function from a given entry point group. """
+    for ep in pkg_resources.iter_entry_points(group, name.strip().lower()):
+        return ep.load()
+
 
