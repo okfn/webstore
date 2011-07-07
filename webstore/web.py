@@ -1,4 +1,5 @@
 from flask import request, url_for
+from werkzeug.exceptions import HTTPException
 from sqlalchemy.sql.expression import asc, desc
 from sqlalchemy.exc import OperationalError
 
@@ -6,7 +7,9 @@ from webstore.core import app
 from webstore.formats import render_table, render_message
 from webstore.formats import read_request
 
-def _result_proxy(rp):
+def _result_proxy_iterator(rp):
+    """ SQLAlchemy ResultProxies are not iterable to get a 
+    list of dictionaries. This is to wrap them. """
     keys = rp.keys()
     while True:
         row = rp.fetchone()
@@ -14,21 +17,43 @@ def _result_proxy(rp):
             break
         yield dict(zip(keys, row))
 
+class WebstoreException(HTTPException):
+    """ Cancel abortion of the current task and return with
+    the given message and error code. """
+
+    def __init__(self, request, message, format,
+                 state='success', code=200, url=None):
+        self.response = render_message(request, message, 
+                 format, state=state, code=code, url=url)
+
+    def get_response(self, environ):
+        return self.response
+
+def _get_table(database, table, format):
+    """ Locate a named table or raise a 404. """
+    db = app.db_factory.create(database)
+    if not table in db:
+        raise WebstoreException(request, 
+                'No such table: %s' % table,
+                format, state='error', code=404)
+    return db[table]
+
 @app.route('/db/<database>.<format>', methods=['GET'])
 @app.route('/db/<database>', methods=['GET'])
 def index(database, format=None):
+    """ Give a list of all tables in the database. """
     db = app.db_factory.create(database)
     tables = []
     for table in db.engine.table_names():
         url = url_for('read', database=database, table=table)
-        tables.append({'name': table,
-                       'url': url,
-                       'columns': db[table].table.c.keys()})
+        tables.append({'name': table, 'url': url})
     return render_table(request, tables, ['name', 'url', 'columns'], format)
 
 @app.route('/db/<database>.<format>', methods=['POST'])
 @app.route('/db/<database>', methods=['POST'])
 def create(database, format=None):
+    """ A table name needs to specified either as a query argument
+    or as part of the URL. This will forward to the URL variant. """
     if not 'table' in request.args:
         return render_message(request, 'Missing argument: table',
                 format, state='error', code=400)
@@ -57,11 +82,7 @@ def create_named(database, table, format=None):
 @app.route('/db/<database>/<table>.<format>', methods=['GET'])
 @app.route('/db/<database>/<table>', methods=['GET'])
 def read(database, table, format=None):
-    db = app.db_factory.create(database)
-    if not table in db:
-        return render_message(request, 'No such table: %s' % table,
-                format, state='error', code=404)
-    _table = db[table]
+    _table = _get_table(database, table, format)
     params = request.args.copy()
     limit = params.pop('_limit', None)
     offset = params.pop('_offset', None)
@@ -90,17 +111,13 @@ def read(database, table, format=None):
     except OperationalError, oe:
         return render_message(request, 'Invalid query: %s' % oe.message,
                 format, state='error', code=400)
-    return render_table(request, _result_proxy(results), 
+    return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
 
 @app.route('/db/<database>/<table>.<format>', methods=['PUT'])
 @app.route('/db/<database>/<table>', methods=['PUT'])
 def update(database, table, format=None):
-    db = app.db_factory.create(database)
-    if not table in db:
-        return render_message(request, 'No such table: %s' % table,
-                format, state='error', code=404)
-    _table = db[table]
+    _table = _get_table(database, table, format)
     unique = request.args.getlist('unique')
     reader = read_request(request, format)
     for row in reader:
@@ -117,11 +134,7 @@ def update(database, table, format=None):
 @app.route('/db/<database>/<table>.<format>', methods=['DELETE'])
 @app.route('/db/<database>/<table>', methods=['DELETE'])
 def delete(database, table, format=None):
-    db = app.db_factory.create(database)
-    if not table in db:
-        return render_message(request, 'No such table: %s' % table,
-                format, state='error', code=404)
-    _table = db[table]
+    _table = _get_table(database, table, format)
     _table.drop()
     _table.commit()
     return render_message(request, 'Table dropped: %s' % table,
