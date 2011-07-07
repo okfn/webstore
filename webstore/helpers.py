@@ -14,3 +14,4 @@ class WebstoreException(HTTPException):
 
     def get_response(self, environ):
         return self.response
+

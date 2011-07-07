@@ -6,6 +6,8 @@ from sqlalchemy.sql import and_
 from sqlalchemy.schema import Table, MetaData, Column
 from migrate.versioning.util import construct_engine
 
+from webstore.validation import validate_name
+
 ID_COLUMN = '__id__'
 
 class DatabaseHandler(object):
@@ -17,6 +19,7 @@ class DatabaseHandler(object):
         self.meta.bind = self.engine
 
     def _create_table(self, table_name):
+        table_name = validate_name(table_name)
         table = Table(table_name, self.meta)
         col = Column(ID_COLUMN, Integer, primary_key=True)
         table.append_column(col)
@@ -63,7 +66,9 @@ class TableHandler(object):
         return UnicodeText
 
     def _ensure_columns(self, row):
-        for column in set(row.keys()) - set(self.table.columns.keys()):
+        columns = set(row.keys()) - set(self.table.columns.keys())
+        columns = map(validate_name, columns)
+        for column in columns:
             _type = self._guess_type(column, row[column])
             col = Column(column, _type)
             col.create(self.table)
@@ -111,10 +116,10 @@ class DatabaseHandlerFactory(object):
 
 class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
 
-    def create(self, name):
+    def create(self, database_name):
         prefix = self.app.config.get('SQLITE_DIR', '/tmp')
-        name = name.replace('.', '')
-        path = os.path.join(prefix, name + '.db')
+        database_name = validate_name(database_name)
+        path = os.path.join(prefix, database_name + '.db')
         return DatabaseHandler(create_engine('sqlite:///' + path))
 
 

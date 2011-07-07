@@ -72,6 +72,18 @@ class WebstoreTestCase(unittest.TestCase):
         body = json.loads(response.data)
         assert response.status == "409 CONFLICT", response.status
         assert body['state'] == 'error', body
+    
+    def test_create_invalid_database_name(self):
+        response = self.app.post('/db/_fooschnasel/foo',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(JSON_FIXTURE))
+        assert response.status.startswith("400"), response.status
+    
+    def test_create_invalid_table_name(self):
+        response = self.app.post('/db/ooschnasel/_foo',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(JSON_FIXTURE))
+        assert response.status.startswith("400"), response.status
 
     def test_does_not_exist(self):
         response = self.app.get('/db/fixtures/not_there')

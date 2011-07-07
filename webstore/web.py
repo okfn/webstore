@@ -7,6 +7,7 @@ from webstore.core import app
 from webstore.formats import render_table, render_message
 from webstore.formats import read_request
 from webstore.helpers import WebstoreException
+from webstore.validation import NamingException
 
 def _result_proxy_iterator(rp):
     """ SQLAlchemy ResultProxies are not iterable to get a 
@@ -95,12 +96,20 @@ def create(database, format=None):
 @app.route('/db/<database>/<table>.<format>', methods=['POST'])
 @app.route('/db/<database>/<table>', methods=['POST'])
 def create_named(database, table, format=None):
-    db = app.db_factory.create(database)
+    try:
+        db = app.db_factory.create(database)
+    except NamingException, ne:
+        raise WebstoreException('Invalid DB: %s' % ne.field,
+                format, state='error', code=400)
     if table in db:
         raise WebstoreException('Table already exists: %s' % table,
                 format, state='error', code=409, 
                 url=url_for('read', database=database, table=table))
-    _table = db[table]
+    try:
+        _table = db[table]
+    except NamingException, ne:
+        raise WebstoreException('Invalid table name: %s' % ne.field,
+                                format, state='error', code=400)
     reader = read_request(request, format)
     for row in reader:
         if len(row.keys()):
