@@ -19,9 +19,9 @@ def _result_proxy_iterator(rp):
             break
         yield dict(zip(keys, row))
 
-def _get_table(database, table, format):
+def _get_table(user, database, table, format):
     """ Locate a named table or raise a 404. """
-    db = app.db_factory.create(database)
+    db = app.db_factory.create(user, database)
     if not table in db:
         raise WebstoreException('No such table: %s' % table,
                 format, state='error', code=404)
@@ -68,7 +68,7 @@ def _request_query(_table, _params):
 @app.route('/<user>/<database>', methods=['GET'])
 def index(user, database, format=None):
     """ Give a list of all tables in the database. """
-    db = app.db_factory.create(database)
+    db = app.db_factory.create(user, database)
     tables = []
     for table in db.engine.table_names():
         url = url_for('read', user=user, database=database, table=table)
@@ -83,7 +83,7 @@ def sql(user, database, format=None):
     if request.content_type != 'text/sql':
         raise WebstoreException('Only text/sql content is supported',
                 format, state='error', code=400)
-    db = app.db_factory.create(database)
+    db = app.db_factory.create(user, database)
     results = db.engine.execute(request.data)
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
@@ -103,7 +103,7 @@ def create(user, database, format=None):
 @app.route('/<user>/<database>/<table>', methods=['POST'])
 def create_named(user, database, table, format=None):
     try:
-        db = app.db_factory.create(database)
+        db = app.db_factory.create(user, database)
     except NamingException, ne:
         raise WebstoreException('Invalid DB: %s' % ne.field,
                 format, state='error', code=400)
@@ -132,7 +132,7 @@ def create_named(user, database, table, format=None):
 @app.route('/<user>/<database>/<table>.<format>', methods=['GET'])
 @app.route('/<user>/<database>/<table>', methods=['GET'])
 def read(user, database, table, format=None):
-    _table = _get_table(database, table, format)
+    _table = _get_table(user, database, table, format)
     params, select_args = _request_query(_table, request.args)
     try:
         clause = _table.args_to_clause(params)
@@ -151,7 +151,7 @@ def read(user, database, table, format=None):
 @app.route('/<user>/<database>/<table>/row/<row>.<format>', methods=['GET'])
 @app.route('/<user>/<database>/<table>/row/<row>', methods=['GET'])
 def row(user, database, table, row, format=None):
-    _table = _get_table(database, table, format)
+    _table = _get_table(user, database, table, format)
     try:
         row = int(row)
     except ValueError:
@@ -176,7 +176,7 @@ def row(user, database, table, row, format=None):
 @app.route('/<user>/<database>/<table>/distinct/<column>.<format>', methods=['GET'])
 @app.route('/<user>/<database>/<table>/distinct/<column>', methods=['GET'])
 def distinct(user, database, table, column, format=None):
-    _table = _get_table(database, table, format)
+    _table = _get_table(user, database, table, format)
     if not column in _table.table.columns:
         raise WebstoreException('No such column: %s' % column,
                 format, state='error', code=404)
@@ -196,7 +196,7 @@ def distinct(user, database, table, column, format=None):
 @app.route('/<user>/<database>/<table>.<format>', methods=['PUT'])
 @app.route('/<user>/<database>/<table>', methods=['PUT'])
 def update(user, database, table, format=None):
-    _table = _get_table(database, table, format)
+    _table = _get_table(user, database, table, format)
     unique = request.args.getlist('unique')
     reader = read_request(request, format)
     try:
@@ -216,7 +216,7 @@ def update(user, database, table, format=None):
 @app.route('/<user>/<database>/<table>.<format>', methods=['DELETE'])
 @app.route('/<user>/<database>/<table>', methods=['DELETE'])
 def delete(user, database, table, format=None):
-    _table = _get_table(database, table, format)
+    _table = _get_table(user, database, table, format)
     _table.drop()
     _table.commit()
     raise WebstoreException('Table dropped: %s' % table,

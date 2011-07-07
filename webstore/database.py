@@ -110,16 +110,19 @@ class DatabaseHandlerFactory(object):
     def __init__(self, app):
         self.app = app
 
-    def create(self, name):
+    def create(self, user_name, database_name):
         pass
 
 
 class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
 
-    def create(self, database_name):
+    def create(self, user_name, database_name):
         prefix = self.app.config.get('SQLITE_DIR', '/tmp')
+        user_directory =os.path.join(prefix, validate_name(user_name))
+        if not os.path.isdir(user_directory):
+            os.makedirs(user_directory)
         database_name = validate_name(database_name)
-        path = os.path.join(prefix, database_name + '.db')
+        path = os.path.join(user_directory, database_name + '.db')
         return DatabaseHandler(create_engine('sqlite:///' + path))
 
 
