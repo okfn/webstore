@@ -26,6 +26,7 @@ setup(
     [webstore.auth]
     always_login = webstore.security:always_login
     never_login = webstore.security:never_login
+    ckan = webstore.ckan:check_ckan_login
     '''
 )
 

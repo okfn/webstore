@@ -1,4 +1,5 @@
 #coding: utf-8
+import os
 import shutil
 import json
 from StringIO import StringIO
@@ -20,6 +21,8 @@ CSV_FIXTURE = """date,temperature,place
 
 JSON_FIXTURE = [{'row1': 'rowvalue1', 'foo': 'bar'},
                 {'row1': 'value2', 'foo': 'schnasel'}]
+
+CKAN_DB_FIXTURE = os.path.join(os.path.dirname(__file__), 'ckan.db')
 
 class WebstoreTestCase(unittest.TestCase):
 
@@ -261,6 +264,20 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.get('/hugo/fixtures', headers={'Accept': JSON,
             'Authorization': auth})
         assert response.status.startswith("401"), response.status
+    
+    def test_login_http_basic_authorization_with_ckan_db(self):
+        ws.app.config['AUTH_FUNCTION'] = 'ckan'
+        ws.app.config['CKAN_DB_URI'] = 'sqlite:///' + CKAN_DB_FIXTURE
+        auth = 'Basic ' + 'test:flup'.encode('base64')
+        response = self.app.get('/test/fixtures', headers={'Accept': JSON,
+            'Authorization': auth})
+        assert response.status.startswith("200"), response.status
+        
+        auth = 'Basic ' + 'test:fail'.encode('base64')
+        response = self.app.get('/test/fixtures', headers={'Accept': JSON,
+            'Authorization': auth})
+        assert response.status.startswith("401"), response.status
+
 
 
 if __name__ == '__main__':
