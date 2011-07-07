@@ -43,6 +43,9 @@ fallback, a file type suffix can also be used::
 
   GET /{user-name}/{db-name}/{table-name}.csv
 
+For JSON, a special query parameter `_callback=function` can be added 
+to specify a JSON-P padding.
+
 The resource can also be filtered::
 
   GET /{user-name}/{db-name}/{table-name}?column=value
