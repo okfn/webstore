@@ -1,3 +1,4 @@
+#coding: utf-8
 import shutil
 import json
 from StringIO import StringIO
@@ -79,6 +80,13 @@ class WebstoreTestCase(unittest.TestCase):
                 data=json.dumps(JSON_FIXTURE))
         assert response.status.startswith("400"), response.status
     
+    def test_create_invalid_column_name(self):
+        data = [{'invalid column': 'not good', u'_valdätion': 'priceless'}]
+        response = self.app.post('/db/fooschnasel/foo',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(data))
+        assert response.status.startswith("400"), response.status
+
     def test_create_invalid_table_name(self):
         response = self.app.post('/db/ooschnasel/_foo',
                 headers={'Accept': JSON}, content_type=JSON,
@@ -141,6 +149,13 @@ class WebstoreTestCase(unittest.TestCase):
             headers={'Accept': JSON})
         body = json.loads(response.data)
         assert body[0]['place'] == 'Honolulu', body
+    
+    def test_put_invalid_column_name(self):
+        data = [{'invalid column': 'not good', u'_valdätion': 'priceless'}]
+        response = self.app.put('/db/fixtures/csv',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(data))
+        assert response.status.startswith("400"), response.status
     
     def test_put_additional_row_as_json_dict(self):
         update = {'place': 'Honolulu', 'climate': 'mild'}

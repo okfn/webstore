@@ -111,9 +111,13 @@ def create_named(database, table, format=None):
         raise WebstoreException('Invalid table name: %s' % ne.field,
                                 format, state='error', code=400)
     reader = read_request(request, format)
-    for row in reader:
-        if len(row.keys()):
-            _table.add_row(row)
+    try:
+        for row in reader:
+            if len(row.keys()):
+                _table.add_row(row)
+    except NamingException, ne:
+        raise WebstoreException('Invalid column name: %s' % ne.field,
+                                format, state='error', code=400)
     _table.commit()
     raise WebstoreException('Successfully created: %s' % table,
                 format, state='success', code=201,
@@ -189,11 +193,15 @@ def update(database, table, format=None):
     _table = _get_table(database, table, format)
     unique = request.args.getlist('unique')
     reader = read_request(request, format)
-    for row in reader:
-        if not len(row.keys()):
-            continue
-        if not _table.update_row(unique, row):
-            _table.add_row(row)
+    try:
+        for row in reader:
+            if not len(row.keys()):
+                continue
+            if not _table.update_row(unique, row):
+                _table.add_row(row)
+    except NamingException, ne:
+        raise WebstoreException('Invalid column name: %s' % ne.field,
+                                format, state='error', code=400)
     _table.commit()
     raise WebstoreException('Table updated: %s' % table,
                             format, state='success', code=201,
