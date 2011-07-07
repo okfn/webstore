@@ -161,6 +161,19 @@ class WebstoreTestCase(unittest.TestCase):
         assert len(body) == 6, body
         assert body[0]['place'] is not None, body
 
+    def test_read_json_single_row(self):
+        response = self.app.get('/db/fixtures/json/row/0',
+            headers={'Accept': JSON})
+        assert response.status.startswith("400"), response.status
+
+        response = self.app.get('/db/fixtures/csv/row/3',
+            headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert response.status.startswith("200"), response.status
+        assert body[0]['place'] == 'Galway', body
+        assert body[0]['temperature'] == '0', body
+
+
 if __name__ == '__main__':
     unittest.main()
 

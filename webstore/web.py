@@ -65,10 +65,13 @@ def _request_query(_table, _params, **queryargs):
         order, column = sort.split(':', 1)
         order = {'asc': asc, 'desc': desc}.get(order.lower(), 'asc')
         sorts.append(order(column))
+
+    args = {'limit': limit, 'offset': offset, 'order_by': sorts}
+    args.update(queryargs)
+
     def _query(whereclause):
         try:
-            statement = _table.table.select(whereclause, limit=limit, 
-                    offset=offset, order_by=sorts, **queryargs)
+            statement = _table.table.select(whereclause, **args)
             return _table.bind.execute(statement)
         except OperationalError, oe:
             raise WebstoreException(request, 'Invalid query: %s' % oe.message,
@@ -142,6 +145,27 @@ def read(database, table, format=None):
     results = _query(clause)
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
+
+@app.route('/db/<database>/<table>/row/<row>.<format>', methods=['GET'])
+@app.route('/db/<database>/<table>/row/<row>', methods=['GET'])
+def row(database, table, row, format=None):
+    _table = _get_table(database, table, format)
+    try:
+        row = int(row)
+        if row == 0:
+            raise WebstoreException(request, 
+                'Starting at offset 1 to allow header row',
+                format, state='error', code=400)
+        params, _query = _request_query(_table, request.args, 
+                    limit=1, offset=row-1)
+        results = _query('')
+        return render_table(request, _result_proxy_iterator(results), 
+                            results.keys(), format)
+    except ValueError:
+        raise WebstoreException(request, 
+                'Invalid row ID: %s' % row,
+                format, state='error', code=400)
+
 
 @app.route('/db/<database>/<table>.<format>', methods=['PUT'])
 @app.route('/db/<database>/<table>', methods=['PUT'])
