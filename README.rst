@@ -111,6 +111,22 @@ allow scrapers to write to the store directly::
 Alternatively, we could implement a 'slurper' that downloads ScraperWiki 
 result data and loads it into webstore.
 
+Executing raw SQL
+-----------------
+
+Webstore has an experimental feature to execute raw SQL statements
+coming from a request. Such statements have to be submitted in the body
+of a PUT request to the database with a content type of 'text/sql'::
+
+  PUT /db/{db-name}
+
+An example of using this could look like this::
+
+    curl -d "SELECT * FROM {table-name}" -i -H "Content-type: text/sql" http://{host}/db/{db-name}
+
+Note. This is database-specific, so you need to know whether you are
+speaking to a PostgreSQL or SQLite-backed webstore.
+
 Command-line usage
 ------------------
 

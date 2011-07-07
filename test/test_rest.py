@@ -140,7 +140,7 @@ class WebstoreTestCase(unittest.TestCase):
             headers={'Accept': JSON})
         body = json.loads(response.data)
         assert body[0]['place'] == 'Honolulu', body
-    
+
     def test_put_additional_row_with_unique_selector(self):
         update = [{'place': 'Berkeley', 'country': 'United States'}]
         response = self.app.put('/db/fixtures/csv?unique=place',
@@ -152,6 +152,14 @@ class WebstoreTestCase(unittest.TestCase):
         body = json.loads(response.data)
         assert body[0]['country'] == 'United States', body
 
+    def test_put_sql_request(self):
+        query = 'SELECT * FROM "csv"'
+        response = self.app.put('/db/fixtures',
+                headers={'Accept': JSON}, content_type='text/sql',
+                data=query)
+        body = json.loads(response.data)
+        assert len(body) == 6, body
+        assert body[0]['place'] is not None, body
 
 if __name__ == '__main__':
     unittest.main()

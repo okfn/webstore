@@ -49,6 +49,20 @@ def index(database, format=None):
         tables.append({'name': table, 'url': url})
     return render_table(request, tables, ['name', 'url', 'columns'], format)
 
+@app.route('/db/<database>.<format>', methods=['PUT'])
+@app.route('/db/<database>', methods=['PUT'])
+def sql(database, format=None):
+    """ Execute an SQL statement on the database. """
+    # TODO: do we really, really need this? 
+    if request.content_type != 'text/sql':
+        raise WebstoreException(request, 
+                'Only text/sql content is supported',
+                format, state='error', code=400)
+    db = app.db_factory.create(database)
+    results = db.engine.execute(request.data)
+    return render_table(request, _result_proxy_iterator(results), 
+                        results.keys(), format)
+
 @app.route('/db/<database>.<format>', methods=['POST'])
 @app.route('/db/<database>', methods=['POST'])
 def create(database, format=None):
@@ -77,7 +91,6 @@ def create_named(database, table, format=None):
     return render_message(request, 'Successfully created: %s' % table,
                 format, state='success', code=201,
                 url=url_for('read', database=database, table=table))
-
 
 @app.route('/db/<database>/<table>.<format>', methods=['GET'])
 @app.route('/db/<database>/<table>', methods=['GET'])
