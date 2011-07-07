@@ -10,4 +10,5 @@ AUTHORIZATION = {
     'world': ['read']
     }
 
-AUTH_FUNCTION = 'never_login'
+AUTH_FUNCTION = 'ckan'
+CKAN_DB_URI = 'postgresql://okfn@localhost/ckantest'

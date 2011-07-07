@@ -30,6 +30,13 @@ def _get_table(user, database, table, format):
     return db[table]
 
 @app.before_request
+def jsonp_callback_register():
+    # This is a slight hack to not make JSON-P callback names 
+    # end up in the query string, we'll keep it around on the 
+    # request global and then read it in the table generator.
+    g.callback = request.args.get('_callback')
+
+@app.before_request
 def check_authentication():
     g.user = None
     if 'REMOTE_USER' in request.environ:
@@ -57,6 +64,9 @@ def _request_query(_table, _params):
     a curried call to the database.
     """
     params = _params.copy()
+    if '_callback' in params:
+        params.pop('_callback')
+
     try:
         limit = int(params.pop('_limit', None)) \
                     if '_limit' in params else None

@@ -1,6 +1,9 @@
-from json import dumps, loads
+try:
+    from json import dumps, loads
+except ImportError:
+    from simplejson import dumps, loads
 
-from flask import Response
+from flask import Response, g
 
 def json_request(request):
     json = loads(request.data)
@@ -10,9 +13,25 @@ def json_request(request):
         for row in json:
             yield row
 
+
+def _generator(table, callback):
+    yield callback + '([' if callback else '['
+    iter = table.__iter__()
+    has_next, first = True, True
+    while has_next:
+        try:
+            row = iter.next()
+        except StopIteration:
+            has_next = False
+        if not first: 
+            yield ', '
+        yield dumps(row)
+        first = False
+    yield '])' if callback else ']'
+
 def json_table(table, keys):
-    table = [r for r in table]
-    return Response(dumps(table), mimetype='application/json')
+    return Response(_generator(table, str(g.callback)), mimetype='application/json',
+                    direct_passthrough=True)
 
 def json_message(message, state='error', url=None, code=200):
     obj = {'message': message, 'state': state}
