@@ -110,7 +110,7 @@ def sql(user, database, format=None):
     if request.content_type != 'text/sql':
         raise WebstoreException('Only text/sql content is supported',
                 format, state='error', code=400)
-    db = app.db_factory.create(user, database)
+    db = app.db_factory.create_readonly(user, database)
     results = db.engine.execute(request.data)
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
@@ -182,7 +182,6 @@ def read(user, database, table, format=None):
 def row(user, database, table, row, format=None):
     require(user, database, 'read', format)
     _table = _get_table(user, database, table, format)
-    _table = _get_table(user, database, table, format)
     try:
         row = int(row)
     except ValueError:
@@ -230,7 +229,6 @@ def distinct(user, database, table, column, format=None):
 @app.route('/<user>/<database>/<table>', methods=['PUT'])
 def update(user, database, table, format=None):
     require(user, database, 'write', format)
-    _table = _get_table(user, database, table, format)
     _table = _get_table(user, database, table, format)
     unique = request.args.getlist('unique')
     if len(unique):

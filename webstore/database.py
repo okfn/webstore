@@ -2,7 +2,9 @@ import os
 
 from sqlalchemy import create_engine
 from sqlalchemy import Integer, UnicodeText
+from sqlalchemy import event
 from sqlalchemy.sql import and_
+from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import Table, MetaData, Column
 from migrate.versioning.util import construct_engine
 
@@ -13,21 +15,30 @@ ID_COLUMN = '__id__'
 class DatabaseHandler(object):
     """ Handle database-wide operations. """
 
-    def __init__(self, engine):
+    def __init__(self, engine, schema=None, 
+            table_callback=lambda t: t):
         self.engine = construct_engine(engine)
         self.meta = MetaData()
+        self.schema = schema
+        self.table_callback = table_callback
         self.meta.bind = self.engine
 
     def _create_table(self, table_name):
         table_name = validate_name(table_name)
-        table = Table(table_name, self.meta)
+        table = Table(table_name, self.meta, 
+                      schema=self.schema)
+        self.table_callback(table)
         col = Column(ID_COLUMN, Integer, primary_key=True)
         table.append_column(col)
         table.create(self.engine)
         return table
 
     def _load_table(self, table_name):
-        return Table(table_name, self.meta, autoload=True)
+        table = Table(table_name, self.meta, 
+                     schema=self.schema,
+                     autoload=True)
+        self.table_callback(table)
+        return table
 
     def __contains__(self, table_name):
         """ Check if the given table exists. """
@@ -112,6 +123,68 @@ class DatabaseHandlerFactory(object):
 
     def create(self, user_name, database_name):
         pass
+    
+    def create_readonly(self, user_name, database_name):
+        return self.create(user_name, database_name)
+
+class PgSQLDatabaseHandlerFactory(DatabaseHandlerFactory):
+
+    URL = 'postgresql://%s@%s/%s'
+
+    def __init__(self, app):
+        self.app = app
+
+        self.db = self.app.config.get('PGSQL_DB', 'webstore')
+        self.host = self.app.config.get('PGSQL_HOST', 'localhost')
+        self.user = self.app.config.get('PGSQL_USER', 'webstore:foo')
+        url = self.URL % (self.user, self.host, self.db)
+        self.engine = create_engine(url, poolclass=NullPool, echo=True)
+
+    def credentials(self, user_name, database_name):
+        name = self.db + 'readonly' + user_name + '' + database_name
+        passwd = self.app.secret_key or "foo"
+        return name, passwd
+
+    def setup(self, schema, user, passwd):
+        conn = self.engine.connect()
+        try:
+            # TODO: check for it first :-)
+            conn.execute("CREATE SCHEMA \"%s\";" % schema)
+        except: pass
+        try:
+            conn.execute("CREATE USER \"%s\" WITH PASSWORD '%s';" % 
+                    (user, passwd))
+            conn.execute("GRANT SELECT ON DATABASE \"%s\" TO \"%s\";" % 
+                    (self.db, user))
+            #conn.execute("GRANT CONNECT ON DATABASE \"%s\" TO \"%s\";" % 
+            #        (self.db, user))
+            #conn.execute("GRANT USAGE ON SCHEMA \"%s\" TO \"%s\";" % 
+            #        (schema, user))
+        except: pass
+
+    def create_readonly(self, user_name, database_name):
+        schema = user_name + '.' + database_name
+        ro_user, ro_pass = self.credentials(user_name, database_name)
+        #self.setup(schema, ro_user, ro_pass)
+        login = ro_user + ':' + ro_pass
+        url = self.URL % (login, self.host, self.db)
+        engine = create_engine(url, poolclass=NullPool, echo=True)
+        try:
+            engine.execute("SET search_path TO \"%s\";" % schema)
+        except: pass
+        return DatabaseHandler(engine, schema=schema)
+
+    def create(self, user_name, database_name):
+        schema = user_name + '.' + database_name
+        ro_user, ro_pass = self.credentials(user_name, database_name)
+        self.setup(schema, ro_user, ro_pass)
+        def after_create(target, connection, **kw):
+            connection.execute("GRANT SELECT ON \"%s\".\"%s\" TO \"%s\"" %
+                    (schema, target.name, ro_user))
+        def table_callback(table):
+            event.listen(table, "after_create", after_create)
+        return DatabaseHandler(self.engine, schema=schema,
+                table_callback=table_callback)
 
 
 class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
@@ -124,5 +197,4 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
         database_name = validate_name(database_name)
         path = os.path.join(user_directory, database_name + '.db')
         return DatabaseHandler(create_engine('sqlite:///' + path))
-
 
