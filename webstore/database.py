@@ -1,9 +1,10 @@
 import os 
 
+from flask import g
 from sqlalchemy import create_engine
 from sqlalchemy import Integer, UnicodeText
 from sqlalchemy import event
-from sqlalchemy.sql import and_
+from sqlalchemy.sql import and_, text
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import Table, MetaData, Column
 from migrate.versioning.util import construct_engine
@@ -42,7 +43,14 @@ class DatabaseHandler(object):
 
     def __contains__(self, table_name):
         """ Check if the given table exists. """
-        return self.engine.has_table(table_name)
+        if self.schema:
+            result = self.engine.execute(
+                text("select 1 from pg_tables where schemaname = :s "
+                     "and tablename = :t"),
+                t=table_name, s=self.schema).fetchone()
+            return True if result else False
+        else:
+            return self.engine.has_table(table_name)
 
     def __getitem__(self, table_name):
         """ return a TableHandler for the named table.
@@ -52,6 +60,15 @@ class DatabaseHandler(object):
         else:
             table = self._load_table(table_name)
         return TableHandler(table, self.engine, self.meta)
+
+    def get_tables(self):
+        if self.schema:
+            result = self.engine.execute(
+                text("select tablename from pg_tables where schemaname = :s"),
+                s=self.schema).fetchall()
+            return [row[0] for row in result]
+        else:
+            return self.engine.table_names()
 
     def finalize(self):
         self.engine.dispose()
@@ -63,10 +80,16 @@ class TableHandler(object):
         self.table = table
         self.bind = engine.connect()
         self.tx = self.bind.begin()
+
+        if not hasattr(g, 'objects_to_close'):
+            g.objects_to_close = []
+        g.objects_to_close.append(self.tx)
+
         self.meta = meta
 
     def commit(self):
         self.tx.commit()
+        self.bind.close()
 
     def drop(self): 
         """ DROP the table. """
@@ -147,39 +170,39 @@ class PgSQLDatabaseHandlerFactory(DatabaseHandlerFactory):
 
     def setup(self, schema, user, passwd):
         conn = self.engine.connect()
-        try:
-            # TODO: check for it first :-)
+        result = conn.execute(text("select 1 from pg_namespace where nspname = :s"),
+                     s=schema).fetchone()
+        
+        if not result:
             conn.execute("CREATE SCHEMA \"%s\";" % schema)
-        except: pass
-        try:
-            conn.execute("CREATE USER \"%s\" WITH PASSWORD '%s';" % 
-                    (user, passwd))
-            conn.execute("GRANT SELECT ON DATABASE \"%s\" TO \"%s\";" % 
-                    (self.db, user))
-            #conn.execute("GRANT CONNECT ON DATABASE \"%s\" TO \"%s\";" % 
-            #        (self.db, user))
-            #conn.execute("GRANT USAGE ON SCHEMA \"%s\" TO \"%s\";" % 
-            #        (schema, user))
-        except: pass
+
+        result = conn.execute(text("select 1 from pg_user where usename = :s"),
+                     s=user).fetchone()
+
+        if not result:
+            conn.execute(text("CREATE USER \"%s\" WITH PASSWORD :p;" % user), 
+                          p = passwd)
+
+        conn.execute("BEGIN; GRANT USAGE ON SCHEMA \"%s\" TO \"%s\"; COMMIT;" % 
+                (schema, user))
 
     def create_readonly(self, user_name, database_name):
+        database_name = validate_name(database_name)
         schema = user_name + '.' + database_name
         ro_user, ro_pass = self.credentials(user_name, database_name)
         #self.setup(schema, ro_user, ro_pass)
         login = ro_user + ':' + ro_pass
         url = self.URL % (login, self.host, self.db)
         engine = create_engine(url, poolclass=NullPool, echo=True)
-        try:
-            engine.execute("SET search_path TO \"%s\";" % schema)
-        except: pass
         return DatabaseHandler(engine, schema=schema)
 
     def create(self, user_name, database_name):
+        database_name = validate_name(database_name)
         schema = user_name + '.' + database_name
         ro_user, ro_pass = self.credentials(user_name, database_name)
         self.setup(schema, ro_user, ro_pass)
         def after_create(target, connection, **kw):
-            connection.execute("GRANT SELECT ON \"%s\".\"%s\" TO \"%s\"" %
+            connection.execute("BEGIN; GRANT SELECT ON \"%s\".\"%s\" TO \"%s\"; COMMIT;" %
                     (schema, target.name, ro_user))
         def table_callback(table):
             event.listen(table, "after_create", after_create)

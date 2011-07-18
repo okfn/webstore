@@ -29,6 +29,13 @@ def _get_table(user, database, table, format):
                 format, state='error', code=404)
     return db[table]
 
+@app.after_request
+def close_objects(response):
+    if hasattr(g, 'objects_to_close'):
+        for obj in g.objects_to_close:
+            obj.close()
+    return response
+
 @app.before_request
 def jsonp_callback_register():
     # This is a slight hack to not make JSON-P callback names 
@@ -96,7 +103,7 @@ def index(user, database, format=None):
     require(user, database, 'read', format)
     db = app.db_factory.create(user, database)
     tables = []
-    for table in db.engine.table_names():
+    for table in db.get_tables():
         url = url_for('read', user=user, database=database, table=table)
         tables.append({'name': table, 'url': url})
     return render_table(request, tables, ['name', 'url', 'columns'], format)
@@ -111,7 +118,8 @@ def sql(user, database, format=None):
         raise WebstoreException('Only text/sql content is supported',
                 format, state='error', code=400)
     db = app.db_factory.create_readonly(user, database)
-    results = db.engine.execute(request.data)
+    search_path = "SET search_path TO \"%s\";" % (user + "." + database)
+    results = db.engine.execute(search_path + request.data)
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
 
@@ -171,11 +179,11 @@ def read(user, database, table, format=None):
     try:
         statement = _table.table.select(clause, **select_args)
         results = _table.bind.execute(statement)
+        return render_table(request, _result_proxy_iterator(results), 
+                            results.keys(), format)
     except OperationalError, oe:
         raise WebstoreException('Invalid query: %s' % oe.message,
             format, state='error', code=400)
-    return render_table(request, _result_proxy_iterator(results), 
-                        results.keys(), format)
 
 @app.route('/<user>/<database>/<table>/row/<row>.<format>', methods=['GET'])
 @app.route('/<user>/<database>/<table>/row/<row>', methods=['GET'])
@@ -242,9 +250,14 @@ def update(user, database, table, format=None):
             if not _table.update_row(unique, row):
                 _table.add_row(row)
     except NamingException, ne:
+        _table.tx.rollback()
         raise WebstoreException('Invalid column name: %s' % ne.field,
                                 format, state='error', code=400)
+    except:
+        _table.tx.rollback()
+        raise
     _table.commit()
+    
     raise WebstoreException('Table updated: %s' % table,
                             format, state='success', code=201,
                             url=url_for('read', user=user, database=database, table=table))
