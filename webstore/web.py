@@ -1,6 +1,7 @@
 from flask import request, url_for, g
 from sqlalchemy.sql.expression import asc, desc
 from sqlalchemy.sql.expression import select
+from sqlalchemy import func
 from sqlalchemy.exc import OperationalError
 
 from webstore.core import app
@@ -215,9 +216,12 @@ def distinct(user, database, table, column, format=None):
                 format, state='error', code=404)
     params, select_args = _request_query(_table, request.args)
     select_args['distinct'] = True
+    if not len(select_args['order_by']):
+        select_args['order_by'].append(desc('_count'))
     try:
-        # TODO: replace this with a group by? 
-        statement = select([_table.table.c[column]], **select_args)
+        col = _table.table.c[column]
+        statement = select([col, func.count(col).label('_count')], 
+                group_by=[col], **select_args)
         results = _table.bind.execute(statement)
     except OperationalError, oe:
         raise WebstoreException('Invalid query: %s' % oe.message,
