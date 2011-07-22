@@ -56,7 +56,7 @@ def check_authentication():
             raise WebstoreException('Invalid username or password!', None,
                                     state='error', code=401)
 
-def _request_query(_table, _params):
+def _request_query(_table, _params, format):
     """ From a set of query parameters, apply those that
     affect a query result set, e.g. sorting, limiting and 
     offsets.
@@ -163,7 +163,8 @@ def create_named(user, database, table, format=None):
 def read(user, database, table, format=None):
     require(user, database, 'read', format)
     _table = _get_table(user, database, table, format)
-    params, select_args = _request_query(_table, request.args)
+    params, select_args = _request_query(_table, request.args,
+                                         format)
     try:
         clause = _table.args_to_clause(params)
     except KeyError, ke:
@@ -193,7 +194,8 @@ def row(user, database, table, row, format=None):
         raise WebstoreException(
             'Starting at offset 1 to allow header row',
             format, state='error', code=400)
-    params, select_args = _request_query(_table, request.args)
+    params, select_args = _request_query(_table, request.args,
+                                         format)
     select_args['limit'] = 1
     select_args['offset'] = row-1
     try:
@@ -214,7 +216,8 @@ def distinct(user, database, table, column, format=None):
     if not column in _table.table.columns:
         raise WebstoreException('No such column: %s' % column,
                 format, state='error', code=404)
-    params, select_args = _request_query(_table, request.args)
+    params, select_args = _request_query(_table, request.args,
+                                         format)
     select_args['distinct'] = True
     if not len(select_args['order_by']):
         select_args['order_by'].append(desc('_count'))
