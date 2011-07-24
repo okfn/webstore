@@ -173,22 +173,14 @@ Possible future: config file can specify a python method (TODO: method
 signature)
 
 
+Client Libraries
+================
+
+  * Python: http://github.com/okfn/webstore-client
+
+
 Integration with Other Systems
 ==============================
 
 TODO: Specify how to delegate authenatication to user database in some other system.
-
-
-Plan
-====
-
-* DONE. Import existing uml/dataproxy stuff as per Francis' info
-* DONE. Get some tests (use existing scraperwiki frontend code)
-* DONE. Replace webstore/dataproxy.py with something simpler (probably cyclone based).
-* TODO. Implement PUT support
-* TODO. Figure out a method to delete individual rows.
-* TODO. Find a nice way to address individual rows (sub-resources?)
-* TODO. File upload support, maybe with Excel import support.
-* TODO. Google Spreadsheet integration.
-
 
