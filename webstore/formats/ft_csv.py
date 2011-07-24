@@ -7,7 +7,8 @@ from flask import Response
 def csv_request(request):
     reader = DictReader(request.stream)
     for row in reader:
-        yield dict([(k, v.decode('utf-8')) for k,v in row.items()])
+        yield dict([(k, v.decode('utf-8') if v is not None else None) \
+                for k,v in row.items()])
         if request.stream.is_exhausted:
             break
 
