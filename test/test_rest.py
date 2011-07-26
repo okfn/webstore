@@ -48,6 +48,14 @@ class WebstoreTestCase(unittest.TestCase):
     def test_no_tables(self):
         response = self.app.get('/hugo/no_tables', headers={'Accept': JSON})
         assert response.data == json.dumps([])
+    
+    def test_invalid_db_name(self):
+        response = self.app.get('/hugo/no such db', headers={'Accept': JSON})
+        assert response.status.startswith("400"), response.status
+    
+    def test_invalid_table_name(self):
+        response = self.app.get('/hugo/no such db/foo', headers={'Accept': JSON})
+        assert response.status.startswith("400"), response.status
 
     def test_create_json_table(self):
         response = self.app.post('/hugo/create_json_table?table=foo',
@@ -70,6 +78,14 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.get('/hugo/fixtures', headers={'Accept': JSON})
         data = json.loads(response.data)
         assert len(data) == 2, data
+    
+    def test_index_db_download(self):
+        response = self.app.get('/hugo/ghost', 
+                headers={'Accept': 'application/x-sqlite3'})
+        assert response.status.startswith("404"), response.status
+        response = self.app.get('/hugo/fixtures', 
+                headers={'Accept': 'application/x-sqlite3'})
+        assert response.data.startswith("SQLite format 3"), response.data
 
     def test_cannot_overwrite_table(self):
         response = self.app.post('/hugo/fixtures/json',

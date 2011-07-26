@@ -1,4 +1,6 @@
-from flask import request, url_for, g
+import os 
+
+from flask import request, url_for, g, send_file
 from sqlalchemy.sql.expression import asc, desc
 from sqlalchemy.sql.expression import select
 from sqlalchemy import func
@@ -6,7 +8,8 @@ from sqlalchemy.exc import OperationalError
 
 from webstore.core import app
 from webstore.formats import render_table, render_message
-from webstore.formats import read_request
+from webstore.formats import read_request, response_format
+from webstore.formats import SQLITE
 from webstore.helpers import WebstoreException
 from webstore.helpers import entry_point_function
 from webstore.validation import NamingException
@@ -24,7 +27,11 @@ def _result_proxy_iterator(rp):
 
 def _get_table(user, database, table, format):
     """ Locate a named table or raise a 404. """
-    db = app.db_factory.create(user, database)
+    try:
+        db = app.db_factory.create(user, database)
+    except NamingException, ne:
+        raise WebstoreException('Invalid DB name: %s' % ne.field,
+                format, state='error', code=400)
     if not table in db:
         raise WebstoreException('No such table: %s' % table,
                 format, state='error', code=404)
@@ -95,7 +102,21 @@ def _request_query(_table, _params, format):
 def index(user, database, format=None):
     """ Give a list of all tables in the database. """
     require(user, database, 'read', format)
-    db = app.db_factory.create(user, database)
+    try:
+        db = app.db_factory.create(user, database)
+    except NamingException, ne:
+        raise WebstoreException('Invalid DB name: %s' % ne.field,
+                format, state='error', code=400)
+
+    # send out sqlite database raw:
+    if response_format(request, format) == 'db' \
+            and db.engine.name == 'sqlite':
+        if not os.path.isfile(db.engine.engine.url.database):
+            return WebstoreException('No such database: %s' % database,
+                                'json', state='error', code=404)
+        return send_file(db.engine.engine.url.database,
+                         mimetype=SQLITE)
+
     tables = []
     for table in db.engine.table_names():
         url = url_for('read', user=user, database=database, table=table)
@@ -111,7 +132,11 @@ def sql(user, database, format=None):
     if request.content_type != 'text/sql':
         raise WebstoreException('Only text/sql content is supported',
                 format, state='error', code=400)
-    db = app.db_factory.create(user, database)
+    try:
+        db = app.db_factory.create(user, database)
+    except NamingException, ne:
+        raise WebstoreException('Invalid DB name: %s' % ne.field,
+                format, state='error', code=400)
     results = db.engine.execute(request.data)
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
@@ -217,7 +242,7 @@ def schema(user, database, table, format=None):
                              table=table, column=column.name)
         schema.append(dict(name=column.name,
                            values_url=values_url,
-                           type=unicode(column.type)))
+                           type=unicode(column.type).lower()))
     return render_table(request, schema, schema[0].keys(), format)
 
 @app.route('/<user>/<database>/<table>/distinct/<column>.<format>', methods=['GET'])

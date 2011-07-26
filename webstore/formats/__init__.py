@@ -5,12 +5,15 @@ from webstore.formats.ft_json import json_request, \
 from webstore.formats.ft_basic import basic_request, \
         basic_table, basic_message
 
+SQLITE = 'application/x-sqlite3'
+
 MIME_TYPES = {
         'text/html': 'html',
         'application/xhtml+xml': 'html',
         'application/json': 'json',
         'text/javascript': 'json',
-        'text/csv': 'csv'
+        'text/csv': 'csv',
+        SQLITE: 'db'
         }
 
 def response_format(request, fmt):
