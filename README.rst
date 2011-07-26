@@ -63,6 +63,12 @@ The query can also be sorted, either as 'asc' (ascending order) or 'desc'
 Note. It might be tempting to use '_asc' and '_desc' instead, but order
 is relevant and not provided for mixed query argument names in Werkzeug.
 
+Sometimes it is useful to know the number, names and types of columns in 
+the database. To get such schema information, access the 'schema' 
+subresource::
+
+  GET /{user-name}/{db-name}/{table-name}/schema
+
 For reference, one can also address each row of a given table at the
 following location::
 
@@ -145,6 +151,15 @@ An example of using this could look like this::
 
 Note. This is database-specific, so you need to know whether you are
 speaking to a PostgreSQL or SQLite-backed webstore.
+
+Downloading the whole database (SQLite)
+---------------------------------------
+
+When SQLite is used as a backend to webstore, the whole database file 
+(not a dump!) can be retrieved by calling the database endpoint either 
+with the '.db' suffix or the 'Accept:' header set to 'application/x-sqlite3'::
+
+  curl -o local.db http://{host}/{user-name}/{db-name}.db
 
 Command-line usage
 ------------------
