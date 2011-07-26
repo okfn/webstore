@@ -143,6 +143,20 @@ class WebstoreTestCase(unittest.TestCase):
         body = json.loads(response.data)
         assert body[0]['temperature'] == '8', body
         assert body[0]['place'] == 'Berkeley', body
+    
+    def test_read_json_schema(self):
+        response = self.app.get('/hugo/fixtures/csv/schema',
+            headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert len(body) == 4, body
+        for col_desc in body:
+            assert 'name' in col_desc, col_desc
+            assert len(col_desc['name']), col_desc
+            assert 'type' in col_desc, col_desc
+            assert len(col_desc['type']), col_desc
+            assert 'values_url' in col_desc, col_desc
+            assert len(col_desc['values_url']), col_desc
+            assert col_desc['values_url'].startswith('/hugo/fixtures/csv/distinct/'), col_desc
 
     def test_put_additional_row(self):
         update = [{'place': 'Honolulu', 'climate': 'mild'}]

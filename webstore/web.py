@@ -184,7 +184,6 @@ def read(user, database, table, format=None):
 def row(user, database, table, row, format=None):
     require(user, database, 'read', format)
     _table = _get_table(user, database, table, format)
-    _table = _get_table(user, database, table, format)
     try:
         row = int(row)
     except ValueError:
@@ -207,11 +206,24 @@ def row(user, database, table, row, format=None):
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
 
+@app.route('/<user>/<database>/<table>/schema.<format>', methods=['GET'])
+@app.route('/<user>/<database>/<table>/schema', methods=['GET'])
+def schema(user, database, table, format=None):
+    require(user, database, 'read', format)
+    _table = _get_table(user, database, table, format)
+    schema = []
+    for column in _table.table.columns:
+        values_url = url_for('distinct', user=user, database=database,
+                             table=table, column=column.name)
+        schema.append(dict(name=column.name,
+                           values_url=values_url,
+                           type=unicode(column.type)))
+    return render_table(request, schema, schema[0].keys(), format)
+
 @app.route('/<user>/<database>/<table>/distinct/<column>.<format>', methods=['GET'])
 @app.route('/<user>/<database>/<table>/distinct/<column>', methods=['GET'])
 def distinct(user, database, table, column, format=None):
     require(user, database, 'read', format)
-    _table = _get_table(user, database, table, format)
     _table = _get_table(user, database, table, format)
     if not column in _table.table.columns:
         raise WebstoreException('No such column: %s' % column,
@@ -237,7 +249,6 @@ def distinct(user, database, table, column, format=None):
 @app.route('/<user>/<database>/<table>', methods=['PUT'])
 def update(user, database, table, format=None):
     require(user, database, 'write', format)
-    _table = _get_table(user, database, table, format)
     _table = _get_table(user, database, table, format)
     unique = request.args.getlist('unique')
     if len(unique):
