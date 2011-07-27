@@ -4,6 +4,7 @@ from webstore.formats.ft_json import json_request, \
         json_table, json_message
 from webstore.formats.ft_basic import basic_request, \
         basic_table, basic_message
+from webstore.formats.ft_gviz import gviz_table
 
 SQLITE = 'application/x-sqlite3'
 
@@ -13,6 +14,7 @@ MIME_TYPES = {
         'application/json': 'json',
         'text/javascript': 'json',
         'text/csv': 'csv',
+        'application/json+vnd.google.gviz': 'gviz',
         SQLITE: 'db'
         }
 
@@ -38,6 +40,8 @@ def render_table(request, table, keys, format):
         return csv_table(table, keys)
     elif format == 'json':
         return json_table(table, keys)
+    elif format == 'gviz':
+        return gviz_table(table, keys)
     else:
         return basic_table(table, keys)
 
