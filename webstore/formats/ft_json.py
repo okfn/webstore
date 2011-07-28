@@ -30,10 +30,10 @@ def _generator(table, callback):
         first = False
     yield '])' if callback else ']'
 
-def json_table(table, keys):
+def json_table(table, keys, headers=None):
     callback = str(g.callback) if g.callback else None
     return Response(_generator(table, callback), mimetype='application/json',
-                    direct_passthrough=True)
+                    direct_passthrough=True, headers=headers)
 
 def json_message(message, state='error', url=None, code=200):
     obj = {'message': message, 'state': state}

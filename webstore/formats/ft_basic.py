@@ -5,9 +5,10 @@ from itertools import islice
 def basic_request(request):
     yield request.form
 
-def basic_table(table, keys):
-    return render_template('table.html', keys=keys,
-            rows=islice(table, 1000))
+def basic_table(table, keys, headers=None):
+    return Response(render_template('table.html', keys=keys,
+            rows=islice(table, 1000)), mimetype='text/html', 
+            headers=headers)
 
 def basic_message(message, state='success', url=None, code=200):
     tmpl = render_template('error.html', message=message, url=url)

@@ -160,6 +160,14 @@ class WebstoreTestCase(unittest.TestCase):
         assert body[0]['temperature'] == '8', body
         assert body[0]['place'] == 'Berkeley', body
     
+    # FIXME: Headers do not appear in testing harness
+    #def test_read_json_representation_count(self):
+    #    response = self.app.get('/hugo/fixtures/csv',
+    #        headers={'Accept': JSON})
+    #    print response.get_wsgi_response()
+    #    print dir(response)
+    #    assert response.headers['X-Count']==6, response.headers
+    
     def test_read_json_schema(self):
         response = self.app.get('/hugo/fixtures/csv/schema',
             headers={'Accept': JSON})

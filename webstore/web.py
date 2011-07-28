@@ -198,11 +198,18 @@ def read(user, database, table, format=None):
     try:
         statement = _table.table.select(clause, **select_args)
         results = _table.bind.execute(statement)
+
+        # produce a count 
+        # TODO: make this optional?
+        count_statement = select([func.count()], clause, _table.table)
+        count = _table.bind.execute(count_statement).fetchone()[0]
+        headers = {'X-Count': count}
+
     except OperationalError, oe:
         raise WebstoreException('Invalid query: %s' % oe.message,
             format, state='error', code=400)
     return render_table(request, _result_proxy_iterator(results), 
-                        results.keys(), format)
+                        results.keys(), format, headers=headers)
 
 @app.route('/<user>/<database>/<table>/row/<row>.<format>', methods=['GET'])
 @app.route('/<user>/<database>/<table>/row/<row>', methods=['GET'])

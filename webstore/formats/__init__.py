@@ -30,20 +30,20 @@ def response_format(request, fmt):
         return fmt
     return MIME_TYPES.get(best)
 
-def render_table(request, table, keys, format):
+def render_table(request, table, keys, format, headers=None):
     """ 
     Render a table, which is defined as an iterable of dicts 
     with (at most) the keys in ``keys``.
     """
     format = response_format(request, format)
     if format == 'csv':
-        return csv_table(table, keys)
+        return csv_table(table, keys, headers=headers)
     elif format == 'json':
-        return json_table(table, keys)
+        return json_table(table, keys, headers=headers)
     elif format == 'gviz':
-        return gviz_table(table, keys)
+        return gviz_table(table, keys, headers=headers)
     else:
-        return basic_table(table, keys)
+        return basic_table(table, keys, headers=headers)
 
 def render_message(request, message, format,
         state='success', code=200, url=None):

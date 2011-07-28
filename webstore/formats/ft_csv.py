@@ -24,13 +24,13 @@ def _csv_line(keys, row):
     csv.writerow(_row)
     return sio.getvalue()
 
-def csv_table(table, keys):
+def csv_table(table, keys, headers=None):
     def _generator():
         yield _csv_line(keys, dict(zip(keys, keys)))
         for row in table:
             yield _csv_line(keys, row)
     return Response(_generator(), mimetype='text/csv',
-                    direct_passthrough=True)
+                    direct_passthrough=True, headers=headers)
 
 def csv_message(message, state='error', url=None, code=200):
     keys = ['message', 'state', 'url']
