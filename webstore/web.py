@@ -11,7 +11,7 @@ from webstore.formats import render_table, render_message
 from webstore.formats import read_request, response_format
 from webstore.formats import SQLITE
 from webstore.helpers import WebstoreException
-from webstore.helpers import entry_point_function
+from webstore.helpers import entry_point_function, crossdomain
 from webstore.validation import NamingException
 from webstore.security import require
 
@@ -97,8 +97,9 @@ def _request_query(_table, _params, format):
     args = {'limit': limit, 'offset': offset, 'order_by': sorts}
     return params, args
 
-@app.route('/<user>/<database>.<format>', methods=['GET'])
-@app.route('/<user>/<database>', methods=['GET'])
+@app.route('/<user>/<database>.<format>', methods=['GET', 'OPTIONS'])
+@app.route('/<user>/<database>', methods=['GET', 'OPTIONS'])
+@crossdomain(origin='*')
 def index(user, database, format=None):
     """ Give a list of all tables in the database. """
     require(user, database, 'read', format)
@@ -183,8 +184,9 @@ def create_named(user, database, table, format=None):
                 format, state='success', code=201,
                 url=url_for('read', user=user, database=database, table=table))
 
-@app.route('/<user>/<database>/<table>.<format>', methods=['GET'])
-@app.route('/<user>/<database>/<table>', methods=['GET'])
+@app.route('/<user>/<database>/<table>.<format>', methods=['GET', 'OPTIONS'])
+@app.route('/<user>/<database>/<table>', methods=['GET', 'OPTIONS'])
+@crossdomain(origin='*')
 def read(user, database, table, format=None):
     require(user, database, 'read', format)
     _table = _get_table(user, database, table, format)
@@ -211,8 +213,9 @@ def read(user, database, table, format=None):
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format, headers=headers)
 
-@app.route('/<user>/<database>/<table>/row/<row>.<format>', methods=['GET'])
-@app.route('/<user>/<database>/<table>/row/<row>', methods=['GET'])
+@app.route('/<user>/<database>/<table>/row/<row>.<format>', methods=['GET', 'OPTIONS'])
+@app.route('/<user>/<database>/<table>/row/<row>', methods=['GET', 'OPTIONS'])
+@crossdomain(origin='*')
 def row(user, database, table, row, format=None):
     require(user, database, 'read', format)
     _table = _get_table(user, database, table, format)
@@ -238,8 +241,9 @@ def row(user, database, table, row, format=None):
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
 
-@app.route('/<user>/<database>/<table>/schema.<format>', methods=['GET'])
-@app.route('/<user>/<database>/<table>/schema', methods=['GET'])
+@app.route('/<user>/<database>/<table>/schema.<format>', methods=['GET', 'OPTIONS'])
+@app.route('/<user>/<database>/<table>/schema', methods=['GET', 'OPTIONS'])
+@crossdomain(origin='*')
 def schema(user, database, table, format=None):
     require(user, database, 'read', format)
     _table = _get_table(user, database, table, format)
@@ -252,8 +256,11 @@ def schema(user, database, table, format=None):
                            type=unicode(column.type).lower()))
     return render_table(request, schema, schema[0].keys(), format)
 
-@app.route('/<user>/<database>/<table>/distinct/<column>.<format>', methods=['GET'])
-@app.route('/<user>/<database>/<table>/distinct/<column>', methods=['GET'])
+@app.route('/<user>/<database>/<table>/distinct/<column>.<format>',
+        methods=['GET', 'OPTIONS'])
+@app.route('/<user>/<database>/<table>/distinct/<column>', 
+        methods=['GET', 'OPTIONS'])
+@crossdomain(origin='*')
 def distinct(user, database, table, column, format=None):
     require(user, database, 'read', format)
     _table = _get_table(user, database, table, format)
