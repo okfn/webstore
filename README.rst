@@ -22,7 +22,7 @@ Run tests (start server first!)::
 API Documentation
 =================
 
-Documentation on the API is in ``doc/index.rst`` and on Read The Docs (URL?).
+Documentation on the API is in ``doc/index.rst`` and on Read The Docs (http://webstore.readthedocs.org/en/latest/).
 
 Client Libraries
 ================
