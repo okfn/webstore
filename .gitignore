@@ -1,2 +1,4 @@
 *.pyc
 *.egg-info
+nosetests.xml
+doc/_build/*
