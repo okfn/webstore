@@ -79,6 +79,7 @@ class TableHandler(object):
         guessed and created.
         """
         self._ensure_columns(row)
+        row = dict([(k, unicode(v)) for k,v in row.items()])
         self.bind.execute(self.table.insert(row))
 
     def args_to_clause(self, args):
@@ -97,6 +98,7 @@ class TableHandler(object):
             return False
         clause = dict([(u, row.get(u)) for u in unique])
         self._ensure_columns(row)
+        row = dict([(k, unicode(v)) for k,v in row.items()])
         stmt = self.table.update(self.args_to_clause(clause), row)
         rp = self.bind.execute(stmt)
         return rp.rowcount > 0
