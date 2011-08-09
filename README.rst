@@ -125,16 +125,6 @@ To delete an entire table, simply issue an HTTP DELETE request::
 Please consider carefully before doing so because datakrishna gets angry
 when people delete data.
 
-Options (future development)
-----------------------------
-
-We could implement ScraperWikis RPC API as an extension in order to
-allow scrapers to write to the store directly::
-
-    /{user-name}/{db-name}/_swrpc?owner=...&database...&data={jsondict}
-
-Alternatively, we could implement a 'slurper' that downloads ScraperWiki 
-result data and loads it into webstore.
 
 Executing raw SQL
 -----------------
@@ -166,7 +156,11 @@ Command-line usage
 
 Uploading a spreadsheet::
 
-    curl --data-binary @myfile.csv -i -H "Content-type: text/csv" http://{host}/{user-name}/{db-name}?table={table-name}}
+    curl --data-binary @myfile.csv -u user:password -i -H "Content-type: text/csv" http://{host}/{user-name}/{db-name}?table={table-name}
+
+Updating (upsert) based on a set of unique columns::
+
+    curl --data-binary @myfile.csv -u user:password -i -H "Content-type: text/csv" http://{host}/{user-name}/{db-name}/{table-name}?unique={col1}&unique={col2}
 
 Get a filtered JSON representation::
 
@@ -176,26 +170,44 @@ Get a filtered JSON representation::
 Authentication and Authorization
 --------------------------------
 
-Authentication: use basic auth header.
+The webstore itself does not maintain information about registered users,
+although users are a necessary, first-class element of the system. To still
+support users, authentication is delegated to another system or performed 
+based on rules. The preferred authentication backend is CKAN, which is used by
+directly interacting with the platform's database. This means CKAN credentials
+can be used as long as they include a valid CKAN user name (not an old
+OpenID-based login).
 
+Authentication can be used via a basic auth header. In the future, support for
+API keys and OAuth is planned. 
 
-Authorization:
+Authorization is based on simple rules and can be configured via the config
+file (AUTHORIZATION). A few common policies are this:
 
-  * Default: all read, owner can write
-  * Restricted: owner can read and write, everyone can do nothing
+ * Default: all users can read, owner can write
+ * Restricted: owner can read and write, everyone can do nothing
 
-Possible future: config file can specify a python method (TODO: method
-signature)
-
+Possible future: config file can specify a python method / entry point to
+support pluggable authorization rules (TODO: method signature)
 
 Client Libraries
 ================
 
-  * Python: http://github.com/okfn/webstore-client
-
+ * Python: http://github.com/okfn/webstore-client
 
 Integration with Other Systems
 ==============================
 
 TODO: Specify how to delegate authenatication to user database in some other system.
+
+ScraperWiki
+-----------
+
+We could implement ScraperWikis RPC API as an extension in order to
+allow scrapers to write to the store directly::
+
+  /{user-name}/{db-name}/_swrpc?owner=...&database...&data={jsondict}
+
+Alternatively, we could implement a 'slurper' that downloads ScraperWiki 
+result data and loads it into webstore.
 
