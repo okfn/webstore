@@ -3,18 +3,206 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to webstore's documentation!
-====================================
+webstore: tables on the web
+===========================
 
-Contents:
+webstore is a RESTful data store for tabular and table-like data. It can
+be used as a dynamic storage for table data, allowing filtered, partial 
+or full retrieval and format conversion.
 
-.. toctree::
-   :maxdepth: 2
+API
+===
 
-Indices and tables
-==================
+The webstore provides an API that aims to make tabular data available as
+hypermedia resources following the REST paradigm. This means having a 
+trade-off between the perfect way to represent tables and to interact with
+tabular data and adhering to a resource-centric view of the web.
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+Core Resource::
 
+    /{user-name}/{db-name}/{table-name}
+
+Table is the central exposed resource (databases are created on-the-fly
+and may in fact not actually be seperate databases, depending on the 
+backend vendor (e.g. we can use PostgreSQL Schemas to partition the
+table space and don't actually need to create distinct databases).
+
+On the ``table`` resource, the following operations are supported.
+
+Viewing and selecting data
+--------------------------
+
+Retrieval::
+
+  GET /{user-name}/{db-name}/{table-name}
+
+This will read data. The desired representation should be specified as an
+``Accept`` header (text/csv, application/json or text/html). As a
+fallback, a file type suffix can also be used::
+
+  GET /{user-name}/{db-name}/{table-name}.csv
+
+
+The resource can also be filtered::
+
+  GET /{user-name}/{db-name}/{table-name}?column=value
+
+To limit the number of results or to specfiy an offset, use these query
+parameters::
+
+  GET /{user-name}/{db-name}/{table-name}?_limit=10&_offset=20
+
+The query can also be sorted, either as 'asc' (ascending order) or 'desc'
+(descending order)::
+
+  GET /{user-name}/{db-name}/{table-name}?_sort=asc:amount
+
+Note. It might be tempting to use '_asc' and '_desc' instead, but order
+is relevant and not provided for mixed query argument names in Werkzeug.
+
+JSON with Padding / CORS
+------------------------
+
+For JSON, a special query parameter `_callback=function` can be added 
+to specify a JSONP padding. Be aware that webstore also supports Cross-Origin
+Resource Sharing (CORS) by allowing access to all HTTP methods from any host.
+This can make accessing resources very easy, as simple XMLHTTPRequest calls can
+be used. CORS is not supported by all browsers, though, and thus JSONP still 
+has a use case.
+
+Sub-resources of tables
+-----------------------
+
+Sometimes it is useful to know the number, names and types of columns in 
+the database. To get such schema information, access the 'schema' 
+subresource::
+
+  GET /{user-name}/{db-name}/{table-name}/schema
+
+For reference, one can also address each row of a given table at the
+following location::
+
+  GET /{user-name}/{db-name}/{table-name}/row/{line-number}
+
+Another useful function is the distinct subcollection: for any column in
+a table, this will return all values of the column exactly once::
+
+  GET /{user-name}/{db-name}/{table-name}/distinct/{column-name}
+
+For both `row` and `distinct`, query paramters such as sorting apply.
+
+Writing
+-------
+
+To create a new table, simply POST to the database::
+
+  POST /{user-name}/{db-name}?table={table-name}
+
+The request must have an appropriate ``Content-type`` set. The entire
+request body is treated as payload. The desired table name is either
+given as a query parameter (see above) or by posting to a non-existent
+table::
+
+  POST /{user-name}/{db-name}/{table-name}
+
+If application/json is specified as the content type, webstore will 
+expect a list of single-level hashes::
+
+  [
+    {"column": "value", "other_column": "other value"},
+    {"column": "banana", "other_column": "split"}
+  ]
+
+To insert additional rows into a table or to update existing rows, 
+issue a PUT request with the same type of payload used for table
+creation::
+
+  PUT /{user-name}/{db-name}/{table-name}
+
+Without further arguments, this will insert new rows as necessary.
+If you want to update existing records, name the columns which are
+sufficient to uniquely identify the row(s) to be updated::
+
+  PUT /{user-name}/{db-name}/{table-name}?unique=id_colum&unique=date
+
+This will attempt to update the database and only create a new row
+if the update did not affect any existing records.
+
+To delete an entire table, simply issue an HTTP DELETE request::
+
+  DELETE /{user-name}/{db-name}/{table-name}
+
+Please consider carefully before doing so because datakrishna gets angry
+when people delete data.
+
+
+Executing raw SQL
+-----------------
+
+Webstore has an experimental feature to execute raw SQL statements
+coming from a request. Such statements have to be submitted in the body
+of a PUT request to the database with a content type of 'text/sql'::
+
+  PUT /{user-name}/{db-name}
+
+An example of using this could look like this::
+
+  curl -X PUT -d "SELECT * FROM {table-name}" -i -H "Content-type: text/sql" http://{host}/{user-name}/{db-name}
+
+Note. This is database-specific, so you need to know whether you are
+speaking to a PostgreSQL or SQLite-backed webstore.
+
+Downloading the whole database (SQLite)
+---------------------------------------
+
+When SQLite is used as a backend to webstore, the whole database file 
+(not a dump!) can be retrieved by calling the database endpoint either 
+with the '.db' suffix or the 'Accept:' header set to 'application/x-sqlite3'::
+
+  curl -o local.db http://{host}/{user-name}/{db-name}.db
+
+Command-line usage
+------------------
+
+Uploading a spreadsheet::
+
+    curl --data-binary @myfile.csv -u user:password -i -H "Content-type: text/csv" http://{host}/{user-name}/{db-name}?table={table-name}
+
+Updating (upsert) based on a set of unique columns::
+
+    curl --data-binary @myfile.csv -u user:password -i -H "Content-type: text/csv" http://{host}/{user-name}/{db-name}/{table-name}?unique={col1}&unique={col2}
+
+Get a filtered JSON representation::
+
+    curl -i -H "Accept: application/json" http://localhost:5000/{user-name}/{db-name}/{table-name}?{col}={value}
+
+
+Authentication and Authorization
+--------------------------------
+
+The webstore itself does not maintain information about registered users,
+although users are a necessary, first-class element of the system. To still
+support users, authentication is delegated to another system or performed 
+based on rules. The preferred authentication backend is CKAN, which is used by
+directly interacting with the platform's database. This means CKAN credentials
+can be used as long as they include a valid CKAN user name (not an old
+OpenID-based login).
+
+Authentication can be used via a basic auth header. In the future, support for
+API keys and OAuth is planned. 
+
+Authorization is based on simple rules and can be configured via the config
+file (AUTHORIZATION). A few common policies are this:
+
+ * Default: all users can read, owner can write
+ * Restricted: owner can read and write, everyone can do nothing
+
+Possible future: config file can specify a python method / entry point to
+support pluggable authorization rules (TODO: method signature)
+
+Client Libraries
+================
+
+ * Python: http://github.com/okfn/webstore-client
+  * Pypi: webstore-client
+  * Documentation at: http://packages.python.org/webstore-client/
