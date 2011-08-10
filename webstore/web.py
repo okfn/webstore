@@ -1,4 +1,4 @@
-from flask import request, g
+from flask import request, g, render_template
 
 from webstore.core import app
 from webstore.helpers import WebstoreException
@@ -36,6 +36,10 @@ def login():
                               format, state='success', code=401)
     response.headers['WWW-Authenticate'] = 'Basic realm="WebStore access"'
     return response
+
+@app.route('/')
+def home():
+    return render_template('index.html')
 
 app.register_blueprint(store)
 

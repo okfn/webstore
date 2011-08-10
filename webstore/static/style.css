@@ -1,0 +1,32 @@
+
+body {
+  font-family: sans-serif; 
+  font-size: 0.8em;
+  color: #333;
+}
+
+hr {
+  height: 1px;
+  background-color: #333;
+  border: 0px;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th, td {
+  font-size: 0.8em;
+  padding: 3px;
+  border: 1px solid #aaa;
+}
+
+th {
+  background: #ccc;
+  text-align: left;
+}
+
+tr:nth-child(even) {
+  background-color:#eee;
+}
+
