@@ -127,4 +127,3 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
         path = os.path.join(user_directory, database_name + '.db')
         return DatabaseHandler(create_engine('sqlite:///' + path))
 
-
