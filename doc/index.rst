@@ -93,6 +93,19 @@ count of its occurences (ie. this is actually a GROUP BY query)::
 
 For both `row` and `distinct`, query paramters such as sorting apply.
 
+Listing databases
+-----------------
+
+If a user name is known, a listing of all their databases is available 
+at::
+
+  GET /{user-name}
+
+This listing is based on a directory listing for the SQLite backend and 
+prone have errors if the directory structure is modified outside of the 
+application. Further, generating this listing may be non-trivial for 
+cases in which another backend is used.
+
 Writing
 -------
 

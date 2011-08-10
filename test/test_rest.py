@@ -44,6 +44,15 @@ class WebstoreTestCase(unittest.TestCase):
         self.app.post('/hugo/fixtures?table=csv',
                 content_type=CSV,
                 data=CSV_FIXTURE)
+    
+    def test_user_databases(self):
+        response = self.app.get('/xxx', headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert len(body)==0
+        response = self.app.get('/hugo', headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert len(body)==1
+        assert body[0]['name']=='fixtures'
 
     def test_no_tables(self):
         response = self.app.get('/hugo/no_tables', headers={'Accept': JSON})

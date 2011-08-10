@@ -83,6 +83,22 @@ def _request_query(_table, _params, format):
     args = {'limit': limit, 'offset': offset, 'order_by': sorts}
     return params, args
 
+@store.route('/<user>.<format>', methods=['GET', 'OPTIONS'])
+@store.route('/<user>', methods=['GET', 'OPTIONS'])
+@crossdomain(origin='*')
+def databases(user, format=None):
+    """ Give a list of all databases owned by the user. """
+    #require(user, database, 'read', format)
+    try:
+        databases = []
+        for database in db_factory.databases_by_user(user):
+            url = url_for('webstore.index', user=user, database=database)
+            databases.append({'name': database, 'url': url})
+        return render_table(request, databases, ['name', 'url'], format)
+    except NamingException, ne:
+        raise WebstoreException('Invalid name: %s' % ne.field,
+                format, state='error', code=400)
+
 @store.route('/<user>/<database>.<format>', methods=['GET', 'OPTIONS'])
 @store.route('/<user>/<database>', methods=['GET', 'OPTIONS'])
 @crossdomain(origin='*')
@@ -92,7 +108,7 @@ def index(user, database, format=None):
     try:
         db = db_factory.create(user, database)
     except NamingException, ne:
-        raise WebstoreException('Invalid DB name: %s' % ne.field,
+        raise WebstoreException('Invalid name: %s' % ne.field,
                 format, state='error', code=400)
 
     # send out sqlite database raw:

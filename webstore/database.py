@@ -3,6 +3,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy import Integer, UnicodeText
 from sqlalchemy.sql import and_
+from glob import iglob
 from sqlalchemy.schema import Table, MetaData, Column
 from migrate.versioning.util import construct_engine
 
@@ -112,17 +113,28 @@ class DatabaseHandlerFactory(object):
     def __init__(self, app):
         self.app = app
 
+    def databases_by_user(self, user_name):
+        pass
+
     def create(self, user_name, database_name):
         pass
 
 
 class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
 
-    def create(self, user_name, database_name):
+    def _user_directory(self, user_name):
         prefix = self.app.config.get('SQLITE_DIR', '/tmp')
-        user_directory =os.path.join(prefix, validate_name(user_name))
+        user_directory = os.path.join(prefix, validate_name(user_name))
         if not os.path.isdir(user_directory):
             os.makedirs(user_directory)
+        return user_directory
+
+    def databases_by_user(self, user_name):
+        user_directory = self._user_directory(user_name)
+        return (os.path.basename(db).rsplit('.', 1)[0] for db in iglob(user_directory + '/*.db'))
+
+    def create(self, user_name, database_name):
+        user_directory = self._user_directory(user_name)
         database_name = validate_name(database_name)
         path = os.path.join(user_directory, database_name + '.db')
         return DatabaseHandler(create_engine('sqlite:///' + path))
