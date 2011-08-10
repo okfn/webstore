@@ -15,8 +15,8 @@ API
 
 The webstore provides an API that aims to make tabular data available as
 hypermedia resources following the REST paradigm. This means having a 
-trade-off between the perfect way to represent tables and to interact with
-tabular data and adhering to a resource-centric view of the web.
+trade-off between the perfect way to represent tables and adhering to a 
+resource-centric view of web media.
 
 Core Resource::
 
@@ -80,12 +80,14 @@ subresource::
   GET /{user-name}/{db-name}/{table-name}/schema
 
 For reference, one can also address each row of a given table at the
-following location::
+following location (with {line-number} set to the auto-increment ``__id__``
+column)::
 
   GET /{user-name}/{db-name}/{table-name}/row/{line-number}
 
 Another useful function is the distinct subcollection: for any column in
-a table, this will return all values of the column exactly once::
+a table, this will return all values of the column exactly once with a 
+count of its occurences (ie. this is actually a GROUP BY query)::
 
   GET /{user-name}/{db-name}/{table-name}/distinct/{column-name}
 
