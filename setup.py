@@ -9,9 +9,15 @@ setup(
     # metadata for upload to PyPI
     author = 'Open Knowledge Foundation',
     author_email = 'info@okfn.org',
-    description = '',
+    description = '''
+webstore is a RESTful data store for tabular and table-like data. It can be used
+as a dynamic storage for table data, allowing filtered, partial or full
+retrieval and format conversion.
+
+See the full documentation at: http://webstore.readthedocs.org/en/latest/
+    ''',
     license = 'MIT',
-    url = '',
+    url = 'http://webstore.thedatahub.org/',
     download_url = '',
     classifiers = [
         'Development Status :: 3 - Alpha',
