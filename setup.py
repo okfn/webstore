@@ -9,7 +9,7 @@ setup(
     # metadata for upload to PyPI
     author = 'Open Knowledge Foundation',
     author_email = 'info@okfn.org',
-    description = 'webstore is a RESTful data store for tabular and table-like data.' 
+    description = 'webstore is a RESTful data store for tabular and table-like data.',
     long_description = '''Webstore can be used
 as a dynamic storage for table data, allowing filtered, partial or full
 retrieval and format conversion.
