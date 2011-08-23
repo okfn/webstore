@@ -154,11 +154,16 @@ when people delete data.
 Executing raw SQL
 -----------------
 
-Webstore has an experimental feature to execute raw SQL statements
-coming from a request. Such statements have to be submitted in the body
-of a PUT request to the database with a content type of 'text/sql'::
+Webstore can execute raw SQL statements coming from a request. Such 
+statements have to be submitted in the body of a PUT request to the 
+database with a content type of 'text/sql'::
 
   PUT /{user-name}/{db-name}
+
+If the user has 'delete' authorization, any SQL statement can be 
+executed, including potentially destructive operations such as 
+INSERT, UPDATE and DELETE. Otherwise, only read operations - i.e. the
+SELECT statement - can be run.
 
 An example of using this could look like this::
 

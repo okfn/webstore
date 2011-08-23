@@ -131,11 +131,35 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
 
     def databases_by_user(self, user_name):
         user_directory = self._user_directory(user_name)
-        return (os.path.basename(db).rsplit('.', 1)[0] for db in iglob(user_directory + '/*.db'))
+        return (os.path.basename(db).rsplit('.', 1)[0] for db in \
+                iglob(user_directory + '/*.db'))
 
-    def create(self, user_name, database_name):
+    def create(self, user_name, database_name, authorizer=None):
         user_directory = self._user_directory(user_name)
         database_name = validate_name(database_name)
         path = os.path.join(user_directory, database_name + '.db')
-        return DatabaseHandler(create_engine('sqlite:///' + path))
+        def make_conn():
+            import sqlite3
+            conn = sqlite3.connect(path)
+            if authorizer is not None:
+                conn.set_authorizer(authorizer)
+            return conn
+        return DatabaseHandler(create_engine('sqlite:///' + path, 
+            creator=make_conn))
 
+    def create_readonly(self, user_name, database_name):
+        import sqlite3
+        def authorizer(action_code, tname, cname, sql_location, trigger):
+            # thanks to ScraperWiki 
+            #print (action_code, tname, cname, sql_location, trigger)
+            readonlyops = [ sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ,
+                            sqlite3.SQLITE_DETACH, 31, 19 ]
+            # 31=SQLITE_FUNCTION missing from library.
+            # codes: http://www.sqlite.org/c3ref/c_alter_table.html
+            if action_code in readonlyops:
+                return sqlite3.SQLITE_OK
+            if action_code == sqlite3.SQLITE_PRAGMA:
+                if tname in ["table_info", "index_list", "index_info"]:
+                    return sqlite3.SQLITE_OK
+            return sqlite3.SQLITE_DENY
+        return self.create(user_name, database_name, authorizer)

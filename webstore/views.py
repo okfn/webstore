@@ -6,7 +6,7 @@ from flask import request, url_for, g, send_file
 from sqlalchemy.sql.expression import asc, desc
 from sqlalchemy.sql.expression import select
 from sqlalchemy import func
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, DatabaseError
 
 from webstore.formats import render_table, render_message
 from webstore.formats import read_request, response_format
@@ -14,7 +14,7 @@ from webstore.formats import SQLITE
 from webstore.helpers import WebstoreException
 from webstore.helpers import crossdomain
 from webstore.validation import NamingException
-from webstore.security import require
+from webstore.security import require, has
 from webstore.database import SQLiteDatabaseHandlerFactory
 
 store = Blueprint('webstore', __name__)
@@ -131,18 +131,25 @@ def index(user, database, format=None):
 def sql(user, database, format=None):
     """ Execute an SQL statement on the database. """
     # TODO: do we really, really need this? 
-    require(user, database, 'delete', format)
     if request.content_type != 'text/sql':
         raise WebstoreException('Only text/sql content is supported',
                 format, state='error', code=400)
     try:
-        db = db_factory.create(user, database)
+        if has(user, database, 'delete'):
+            db = db_factory.create(user, database)
+        else:
+            require(user, database, 'read', format)
+            db = db_factory.create_readonly(user, database)
     except NamingException, ne:
         raise WebstoreException('Invalid DB name: %s' % ne.field,
                 format, state='error', code=400)
-    results = db.engine.execute(request.data)
-    return render_table(request, _result_proxy_iterator(results), 
-                        results.keys(), format)
+    try:
+        results = db.engine.execute(request.data)
+        return render_table(request, _result_proxy_iterator(results), 
+                            results.keys(), format)
+    except DatabaseError, de:
+        raise WebstoreException('DB Error: %s' % de.message,
+                format, state='error', code=400)
 
 @store.route('/<user>/<database>.<format>', methods=['POST'])
 @store.route('/<user>/<database>', methods=['POST'])
