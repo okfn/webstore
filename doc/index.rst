@@ -60,6 +60,10 @@ The query can also be sorted, either as 'asc' (ascending order) or 'desc'
 Note. It might be tempting to use '_asc' and '_desc' instead, but order
 is relevant and not provided for mixed query argument names in Werkzeug.
 
+Another useful feature of the views is result counts: any query to a table
+will have an ``X-Count`` header specifying the number of matching records 
+in the database.
+
 JSON with Padding / CORS
 ------------------------
 
@@ -190,7 +194,7 @@ Uploading a spreadsheet::
 
 Updating (upsert) based on a set of unique columns::
 
-    curl --data-binary @myfile.csv -u user:password -i -H "Content-type: text/csv" http://{host}/{user-name}/{db-name}/{table-name}?unique={col1}&unique={col2}
+    curl -XPUT --data-binary @myfile.csv -u user:password -i -H "Content-type: text/csv" http://{host}/{user-name}/{db-name}/{table-name}?unique={col1}&unique={col2}
 
 Get a filtered JSON representation::
 

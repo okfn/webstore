@@ -66,6 +66,15 @@ class TableHandler(object):
         # TODO: decide if type-guessing is a good idea here.
         return UnicodeText
 
+    def _type_convert(self, row):
+        _row = []
+        for k, v in row.items():
+            if v is None:
+                _row.append((k, v))
+            else:
+                _row.append((k, unicode(v)))
+        return dict(_row)
+
     def _ensure_columns(self, row):
         columns = set(row.keys()) - set(self.table.columns.keys())
         columns = map(validate_name, columns)
@@ -80,7 +89,7 @@ class TableHandler(object):
         guessed and created.
         """
         self._ensure_columns(row)
-        row = dict([(k, unicode(v)) for k,v in row.items()])
+        row = self._type_convert(row)
         self.bind.execute(self.table.insert(row))
 
     def args_to_clause(self, args):
@@ -99,10 +108,13 @@ class TableHandler(object):
             return False
         clause = dict([(u, row.get(u)) for u in unique])
         self._ensure_columns(row)
-        row = dict([(k, unicode(v)) for k,v in row.items()])
-        stmt = self.table.update(self.args_to_clause(clause), row)
-        rp = self.bind.execute(stmt)
-        return rp.rowcount > 0
+        row = self._type_convert(row)
+        try:
+            stmt = self.table.update(self.args_to_clause(clause), row)
+            rp = self.bind.execute(stmt)
+            return rp.rowcount > 0
+        except KeyError: # column does not exist
+            return False
 
 class DatabaseHandlerFactory(object):
     """ An engine factory will generate a database with
@@ -140,7 +152,7 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
         path = os.path.join(user_directory, database_name + '.db')
         def make_conn():
             import sqlite3
-            conn = sqlite3.connect(path)
+            conn = sqlite3.connect(path, timeout=10)
             if authorizer is not None:
                 conn.set_authorizer(authorizer)
             return conn
