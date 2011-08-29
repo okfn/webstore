@@ -22,6 +22,11 @@ CSV_FIXTURE = """date,temperature,place
 JSON_FIXTURE = [{'row1': 'rowvalue1', 'foo': 'bar'},
                 {'row1': 'value2', 'foo': 'schnasel'}]
 
+JSON_TYPED_FIXTURE = [{'int_col': 5, 'str_col': 'foo', 
+                       'float_col': 6.55, 'null_col': None},
+                      {'int_col': 2, 'str_col': 'bar',
+                       'float_col': 2.1, 'null_col': 5}]
+
 CKAN_DB_FIXTURE = os.path.join(os.path.dirname(__file__), 'ckan.db')
 
 class WebstoreTestCase(unittest.TestCase):
@@ -80,6 +85,21 @@ class WebstoreTestCase(unittest.TestCase):
         assert 'Successfully' in body['message'], body
         assert 'success' == body['state'], body
         assert '/hugo/create_json_table/foo' == body['url'], body
+    
+    def test_create_typed_json_table(self):
+        response = self.app.post('/hugo/foobar?table=typed',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(JSON_TYPED_FIXTURE))
+        body = json.loads(response.data)
+        assert 'Successfully' in body['message'], body
+        response = self.app.get('/hugo/foobar/typed', 
+                headers={'Accept': JSON})
+        data = json.loads(response.data)
+        in_row = JSON_TYPED_FIXTURE[0]
+        out_row = data[0]
+        assert in_row['float_col']-out_row['float_col']<0.1, out_row
+        assert in_row['int_col']==out_row['int_col'], out_row
+        assert type(data[1]['null_col'])==unicode, data[1]
 
     def test_create_csv_table(self):
         response = self.app.post('/hugo/create_csv_table?table=foo',
@@ -197,6 +217,28 @@ class WebstoreTestCase(unittest.TestCase):
             assert len(col_desc['values_url']), col_desc
             assert col_desc['values_url'].startswith('/hugo/fixtures/csv/distinct/'), col_desc
 
+    def test_read_typed_json_schema(self):
+        response = self.app.post('/hugo/foobar?table=typed',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(JSON_TYPED_FIXTURE))
+        response = self.app.get('/hugo/foobar/typed/schema',
+            headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert len(body)==5, body
+        for col in body:
+            if col['name'] == 'float_col':
+                assert col['type']=='float', col
+            if col['name'] == 'int_col':
+                assert col['type']=='integer', col
+
+        invalid = [{'float_col': 'hallo'}]
+        response = self.app.put('/hugo/foobar/typed',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(invalid))
+        assert response.status.startswith("400"), response.status
+        data = json.loads(response.data)
+        assert 'float' in data['message'], data
+
     def test_put_additional_row(self):
         update = [{'place': 'Honolulu', 'climate': 'mild'}]
         response = self.app.put('/hugo/fixtures/csv',
@@ -207,14 +249,14 @@ class WebstoreTestCase(unittest.TestCase):
             headers={'Accept': JSON})
         body = json.loads(response.data)
         assert body[0]['place'] == 'Honolulu', body
-    
+
     def test_put_invalid_column_name(self):
         data = [{'invalid column': 'not good', u'_valdätion': 'priceless'}]
         response = self.app.put('/hugo/fixtures/csv',
                 headers={'Accept': JSON}, content_type=JSON,
                 data=json.dumps(data))
         assert response.status.startswith("400"), response.status
-    
+
     def test_put_additional_row_as_json_dict(self):
         update = {'place': 'Honolulu', 'climate': 'mild'}
         response = self.app.put('/hugo/fixtures/csv',

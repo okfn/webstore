@@ -6,7 +6,8 @@ from flask import request, url_for, g, send_file
 from sqlalchemy.sql.expression import asc, desc
 from sqlalchemy.sql.expression import select
 from sqlalchemy import func
-from sqlalchemy.exc import OperationalError, DatabaseError
+from sqlalchemy.exc import OperationalError, DatabaseError, \
+        StatementError
 
 from webstore.formats import render_table, render_message
 from webstore.formats import read_request, response_format
@@ -169,7 +170,7 @@ def create_named(user, database, table, format=None):
     try:
         db = db_factory.create(user, database)
     except NamingException, ne:
-        raise WebstoreException('Invalid DB: %s' % ne.field,
+        raise WebstoreException('Invalid DB name: %s' % ne.field,
                 format, state='error', code=400)
     if table in db:
         raise WebstoreException('Table already exists: %s' % table,
@@ -185,6 +186,9 @@ def create_named(user, database, table, format=None):
         for row in reader:
             if len(row.keys()):
                 _table.add_row(row)
+    except StatementError, se:
+        raise WebstoreException(unicode(se), format, state='error', 
+                                code=400)
     except NamingException, ne:
         raise WebstoreException('Invalid column name: %s' % ne.field,
                                 format, state='error', code=400)
@@ -309,6 +313,9 @@ def update(user, database, table, format=None):
                 continue
             if not _table.update_row(unique, row):
                 _table.add_row(row)
+    except StatementError, se:
+        raise WebstoreException(unicode(se), format, state='error', 
+                                code=400)
     except NamingException, ne:
         raise WebstoreException('Invalid column name: %s' % ne.field,
                                 format, state='error', code=400)

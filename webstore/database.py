@@ -1,7 +1,7 @@
 import os 
 
 from sqlalchemy import create_engine
-from sqlalchemy import Integer, UnicodeText
+from sqlalchemy import Integer, UnicodeText, Float
 from sqlalchemy.sql import and_
 from glob import iglob
 from sqlalchemy.schema import Table, MetaData, Column
@@ -63,7 +63,10 @@ class TableHandler(object):
         self.table.drop()
 
     def _guess_type(self, column, sample):
-        # TODO: decide if type-guessing is a good idea here.
+        if isinstance(sample, int):
+            return Integer
+        elif isinstance(sample, float):
+            return Float
         return UnicodeText
 
     def _type_convert(self, row):
