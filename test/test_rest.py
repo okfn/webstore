@@ -62,6 +62,12 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.get('/hugo/no such db', headers={'Accept': JSON})
         assert response.status.startswith("400"), response.status
     
+    def test_valid_db_name(self):
+        response = self.app.get('/hugo/no-such-db', headers={'Accept': JSON})
+        assert response.status.startswith("200"), response.status
+        response = self.app.get('/hu-go/no-such-db', headers={'Accept': JSON})
+        assert response.status.startswith("200"), response.status
+    
     def test_invalid_table_name(self):
         response = self.app.get('/hugo/no such db/foo', headers={'Accept': JSON})
         assert response.status.startswith("400"), response.status

@@ -7,7 +7,7 @@ from glob import iglob
 from sqlalchemy.schema import Table, MetaData, Column
 from migrate.versioning.util import construct_engine
 
-from webstore.validation import validate_name
+from webstore.validation import validate_name, validate_dbname
 
 ID_COLUMN = '__id__'
 
@@ -136,7 +136,7 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
 
     def _user_directory(self, user_name):
         prefix = self.app.config.get('SQLITE_DIR', '/tmp')
-        user_directory = os.path.join(prefix, validate_name(user_name))
+        user_directory = os.path.join(prefix, validate_dbname(user_name))
         if not os.path.isdir(user_directory):
             os.makedirs(user_directory)
         return user_directory
@@ -148,7 +148,7 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
 
     def create(self, user_name, database_name, authorizer=None):
         user_directory = self._user_directory(user_name)
-        database_name = validate_name(database_name)
+        database_name = validate_dbname(database_name)
         path = os.path.join(user_directory, database_name + '.db')
         def make_conn():
             import sqlite3
