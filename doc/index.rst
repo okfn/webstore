@@ -154,6 +154,16 @@ To delete an entire table, simply issue an HTTP DELETE request::
 Please consider carefully before doing so because datakrishna gets angry
 when people delete data.
 
+Data types
+----------
+
+If the submitted data is in format that supports types (e.g. JSON),
+database columns are created according to the type of the first row
+in the data (e.g. a float JSON field will generate a FLOAT column in
+SQL). If the value of a column is null in the first row, a VARCHAR
+column is created. When new data is added, types are enforced on the
+incoming data. Values that can not be converted to the designated 
+type will result in an HTTP 400 (Bad Request) error.
 
 Executing raw SQL
 -----------------
