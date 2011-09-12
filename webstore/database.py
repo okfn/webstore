@@ -134,6 +134,37 @@ class DatabaseHandlerFactory(object):
     def create(self, user_name, database_name):
         pass
 
+    def create_readonly(self, user_name, database_name):
+        pass
+
+    def attach(self, authorizer, connection, user_name, database_name, alias):
+        pass
+
+
+import sqlite3
+def authorizer_ro(action_code, tname, cname, sql_location, trigger):
+    # thanks to ScraperWiki 
+    #print (action_code, tname, cname, sql_location, trigger)
+    readonlyops = [ sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ,
+                    sqlite3.SQLITE_DETACH, 31, 19 ]
+    # 31=SQLITE_FUNCTION missing from library.
+    # codes: http://www.sqlite.org/c3ref/c_alter_table.html
+    if action_code in readonlyops:
+        return sqlite3.SQLITE_OK
+    if action_code == sqlite3.SQLITE_PRAGMA:
+        if tname in ["table_info", "index_list", "index_info"]:
+            return sqlite3.SQLITE_OK
+    return sqlite3.SQLITE_DENY
+
+def authorizer_attach(action_code, tname, cname, sql_location, trigger):
+    if action_code == sqlite3.SQLITE_ATTACH: 
+        return sqlite3.SQLITE_OK
+    return authorizer_ro(action_code, tname, cname, sql_location, trigger)
+
+def authorizer_rw(action_code, tname, cname, sql_location, trigger):
+    if sql_location == None or sql_location == 'main':  
+        return sqlite3.SQLITE_OK
+    return authorizer_ro(action_code, tname, cname, sql_location, trigger)
 
 class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
 
@@ -149,32 +180,34 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
         return (os.path.basename(db).rsplit('.', 1)[0] for db in \
                 iglob(user_directory + '/*.db'))
 
-    def create(self, user_name, database_name, authorizer=None):
+    def database_path(self, user_name, database_name):
         user_directory = self._user_directory(user_name)
         database_name = validate_dbname(database_name)
-        path = os.path.join(user_directory, database_name + '.db')
+        return os.path.join(user_directory, database_name + '.db')
+
+    def create(self, user_name, database_name, authorizer=authorizer_rw):
+        path = self.database_path(user_name, database_name)
         def make_conn():
-            import sqlite3
             conn = sqlite3.connect(path, timeout=10)
             if authorizer is not None:
                 conn.set_authorizer(authorizer)
             return conn
-        return DatabaseHandler(create_engine('sqlite:///' + path, 
+        handler = DatabaseHandler(create_engine('sqlite:///' + path, 
             creator=make_conn))
+        handler.authorizer = authorizer
+        return handler
 
     def create_readonly(self, user_name, database_name):
-        import sqlite3
-        def authorizer(action_code, tname, cname, sql_location, trigger):
-            # thanks to ScraperWiki 
-            #print (action_code, tname, cname, sql_location, trigger)
-            readonlyops = [ sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ,
-                            sqlite3.SQLITE_DETACH, 31, 19 ]
-            # 31=SQLITE_FUNCTION missing from library.
-            # codes: http://www.sqlite.org/c3ref/c_alter_table.html
-            if action_code in readonlyops:
-                return sqlite3.SQLITE_OK
-            if action_code == sqlite3.SQLITE_PRAGMA:
-                if tname in ["table_info", "index_list", "index_info"]:
-                    return sqlite3.SQLITE_OK
-            return sqlite3.SQLITE_DENY
-        return self.create(user_name, database_name, authorizer)
+        return self.create(user_name, database_name, authorizer_ro)
+
+    def attach(self, authorizer, connection, user_name, database_name, alias):
+        """ Attach a database to another, existing database. This means all
+        tables within the other database will become available with a prefix,
+        ``alias``. In order to attach safely, we need to temporarily swap 
+        out the authorization function of the connection to allow the attach 
+        operation. """
+        connection.connection.set_authorizer(authorizer_attach)
+        path = self.database_path(user_name, database_name)
+        connection.execute("ATTACH DATABASE ? AS ?", path, alias)
+        connection.connection.set_authorizer(authorizer)
+        return connection

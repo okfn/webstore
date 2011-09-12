@@ -287,6 +287,37 @@ class WebstoreTestCase(unittest.TestCase):
         body = json.loads(response.data)
         assert len(body) == 6, body
         assert body[0]['place'] is not None, body
+    
+    def test_put_sql_request_with_params(self):
+        query = {'query': 'SELECT * FROM "csv" WHERE place = ?',
+                 'params_list': ['Galway']}
+        response = self.app.put('/hugo/fixtures',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(query))
+        body = json.loads(response.data)
+        assert len(body) == 3, body
+        assert body[0]['place']=='Galway', body
+
+        query = {'query': 'SELECT * FROM "csv" WHERE place = :foo',
+                 'params_dict': {'foo': 'Galway'}}
+        response = self.app.put('/hugo/fixtures',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(query))
+        body = json.loads(response.data)
+        assert len(body) == 3, body
+        assert body[0]['place']=='Galway', body
+    
+    def test_put_sql_attach_database(self):
+        query = {'query': 'SELECT * FROM foo."csv"',
+                 'attach': [{'user': 'hugo', 
+                             'database': 'fixtures', 
+                             'alias': 'foo'}]}
+        response = self.app.put('/hugo/mixtures',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(query))
+        body = json.loads(response.data)
+        assert len(body) == 6, body
+        assert body[0]['place']=='Galway', body
 
     def test_read_json_single_row(self):
         response = self.app.get('/hugo/fixtures/json/row/0',

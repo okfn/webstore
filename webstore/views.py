@@ -132,8 +132,17 @@ def index(user, database, format=None):
 def sql(user, database, format=None):
     """ Execute an SQL statement on the database. """
     # TODO: do we really, really need this? 
-    if request.content_type != 'text/sql':
-        raise WebstoreException('Only text/sql content is supported',
+    if request.content_type == 'text/sql':
+        query = request.data
+        params_list, params_dict = [], {}
+        attaches = []
+    elif request.content_type.lower() == 'application/json':
+        query = request.json.get('query', '')
+        params_list = request.json.get('params_list', [])
+        params_dict = request.json.get('params_dict', {})
+        attaches = request.json.get('attach', [])
+    else:
+        raise WebstoreException('Only text/sql, application/json is supported',
                 format, state='error', code=400)
     try:
         if has(user, database, 'delete'):
@@ -145,9 +154,22 @@ def sql(user, database, format=None):
         raise WebstoreException('Invalid DB name: %s' % ne.field,
                 format, state='error', code=400)
     try:
-        results = db.engine.execute(request.data)
+        connection = db.engine.connect()
+        for attach in attaches:
+            attach_user = attach.get('user', user)
+            attach_db = attach['database']
+            require(attach_user, attach_db, 'read', format)
+            connection = db_factory.attach(db.authorizer, connection, 
+                attach_user, attach_db, attach.get('alias', attach_db))
+        results = connection.execute(query, *params_list, **params_dict)
         return render_table(request, _result_proxy_iterator(results), 
                             results.keys(), format)
+    except NamingException, ne:
+        raise WebstoreException('Invalid attach DB name: %s' % ne.field,
+                format, state='error', code=400)
+    except KeyError, ke:
+        raise WebstoreException('Invalid attach DB: %s' % ke,
+                format, state='error', code=400)
     except DatabaseError, de:
         raise WebstoreException('DB Error: %s' % de.message,
                 format, state='error', code=400)
