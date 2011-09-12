@@ -15,9 +15,17 @@ is allowed to perform a given query.
 from flask import g
 
 from webstore.helpers import WebstoreException
+from webstore.helpers import entry_point_function
 from webstore.core import app
 
+
 def has(user, database, action):
+    has_function = entry_point_function(app.config['HAS_FUNCTION'],
+                                        'webstore.authz')
+    return has_function(user, database, action)
+
+
+def default_has(user, database, action):
     matrix = app.config['AUTHORIZATION']
     if user == g.user:
         capacity = 'self'
@@ -40,9 +48,17 @@ def require(user, database, action, format):
 
 
 # These are for testing and can be used as mock authentication handlers.
-def always_login(user, password):
-    return True
+def always_login(request):
+    if 'Authorization' in request.headers:
+        authorization = request.headers.get('Authorization')
+        authorization = authorization.split(' ', 1)[-1]
+        user, password = authorization.decode('base64').split(':', 1)
+        return user
+    return request.environ.get('REMOTE_USER')
 
-def never_login(user, password):
-    return False
+def never_login(request):
+    if 'Authorization' in request.headers:
+        raise WebstoreException('Invalid username or password!', None,
+                                state='error', code=401)
+    return None
 

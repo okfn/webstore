@@ -290,7 +290,7 @@ class WebstoreTestCase(unittest.TestCase):
     
     def test_put_sql_request_with_params(self):
         query = {'query': 'SELECT * FROM "csv" WHERE place = ?',
-                 'params_list': ['Galway']}
+                 'params': ['Galway']}
         response = self.app.put('/hugo/fixtures',
                 headers={'Accept': JSON}, content_type=JSON,
                 data=json.dumps(query))
@@ -299,7 +299,7 @@ class WebstoreTestCase(unittest.TestCase):
         assert body[0]['place']=='Galway', body
 
         query = {'query': 'SELECT * FROM "csv" WHERE place = :foo',
-                 'params_dict': {'foo': 'Galway'}}
+                 'params': {'foo': 'Galway'}}
         response = self.app.put('/hugo/fixtures',
                 headers={'Accept': JSON}, content_type=JSON,
                 data=json.dumps(query))

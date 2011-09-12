@@ -11,6 +11,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import Table, MetaData
 
 from webstore.core import app
+from webstore.helpers import WebstoreException
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ def check_hashed_password(password, db_password):
     hashed_pass = sha1(password_8bit + db_password[:40])
     return db_password[40:] == hashed_pass.hexdigest()
 
-def check_ckan_login(user, password):
+def check_ckan_login(request):
     """ Connect to a specified CKAN database via SQLAlchemy and 
     try to find the user that is authenticating. 
     """
@@ -33,16 +34,23 @@ def check_ckan_login(user, password):
     if db_uri is None:
         log.warn("No CKAN_DB_URI given, cannot authenticate!")
         return False
-    engine = create_engine(db_uri, poolclass=NullPool)
-    meta = MetaData()
-    meta.bind = engine
-    table = Table('user', meta, autoload=True)
-    results = engine.execute(table.select(table.c.name==user))
-    # TODO: check for multiple matches, never trust ckan.
-    record = results.first()
-    if record is not None:
-        return check_hashed_password(password, record['password'])
-    return False
+    if 'Authorization' in request.headers:
+        authorization = request.headers.get('Authorization')
+        authorization = authorization.split(' ', 1)[-1]
+        user, password = authorization.decode('base64').split(':', 1)
+        engine = create_engine(db_uri, poolclass=NullPool)
+        meta = MetaData()
+        meta.bind = engine
+        table = Table('user', meta, autoload=True)
+        results = engine.execute(table.select(table.c.name==user))
+        # TODO: check for multiple matches, never trust ckan.
+        record = results.first()
+        if record is not None and check_hashed_password(password,
+                record['password']):
+            return user
+        raise WebstoreException('Invalid username or password!', None,
+                                state='error', code=401)
+    return None
 
 
     
