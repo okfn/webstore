@@ -134,12 +134,11 @@ def sql(user, database, format=None):
     # TODO: do we really, really need this? 
     if request.content_type == 'text/sql':
         query = request.data
-        params_list, params_dict = [], {}
+        params = None
         attaches = []
     elif request.content_type.lower() == 'application/json':
         query = request.json.get('query', '')
-        params_list = request.json.get('params_list', [])
-        params_dict = request.json.get('params_dict', {})
+        params = request.json.get('params')
         attaches = request.json.get('attach', [])
     else:
         raise WebstoreException('Only text/sql, application/json is supported',
@@ -161,6 +160,8 @@ def sql(user, database, format=None):
             require(attach_user, attach_db, 'read', format)
             connection = db_factory.attach(db.authorizer, connection, 
                 attach_user, attach_db, attach.get('alias', attach_db))
+        params_dict = params if isinstance(params, dict) else {}
+        params_list = [] if isinstance(params, dict) or not params else params
         results = connection.execute(query, *params_list, **params_dict)
         return render_table(request, _result_proxy_iterator(results), 
                             results.keys(), format)
