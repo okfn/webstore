@@ -160,31 +160,32 @@ def create(user, database, format=None):
     if not 'table' in request.args:
         return render_message('Missing argument: table',
                 format, state='error', code=400)
-    return create_named(user, database, request.args.get('table'), 
-                        format=format)
+    return upsert(user, database, request.args.get('table'), 
+                  format=format)
 
-@store.route('/<user>/<database>/<table>.<format>', methods=['POST'])
-@store.route('/<user>/<database>/<table>', methods=['POST'])
-def create_named(user, database, table, format=None):
+@store.route('/<user>/<database>/<table>.<format>', methods=['POST', 'PUT'])
+@store.route('/<user>/<database>/<table>', methods=['POST', 'PUT'])
+def upsert(user, database, table, format=None):
     require(user, database, 'write', format)
     try:
         db = db_factory.create(user, database)
     except NamingException, ne:
         raise WebstoreException('Invalid DB name: %s' % ne.field,
                 format, state='error', code=400)
-    if table in db:
-        raise WebstoreException('Table already exists: %s' % table,
-                format, state='error', code=409, 
-                url=url_for('webstore.read', user=user, database=database, table=table))
     try:
         _table = db[table]
     except NamingException, ne:
         raise WebstoreException('Invalid table name: %s' % ne.field,
                                 format, state='error', code=400)
+    unique = request.args.getlist('unique')
+    if len(unique):
+        require(user, database, 'delete', format)
     reader = read_request(request, format)
     try:
         for row in reader:
-            if len(row.keys()):
+            if not len(row.keys()):
+                continue
+            if not _table.update_row(unique, row):
                 _table.add_row(row)
     except StatementError, se:
         raise WebstoreException(unicode(se), format, state='error', 
@@ -193,7 +194,7 @@ def create_named(user, database, table, format=None):
         raise WebstoreException('Invalid column name: %s' % ne.field,
                                 format, state='error', code=400)
     _table.commit()
-    raise WebstoreException('Successfully created: %s' % table,
+    raise WebstoreException('Successfully saved: %s' % table,
                 format, state='success', code=201,
                 url=url_for('webstore.read', user=user, database=database, table=table))
 
@@ -295,34 +296,6 @@ def distinct(user, database, table, column, format=None):
             format, state='error', code=400)
     return render_table(request, _result_proxy_iterator(results), 
                         results.keys(), format)
-
-
-@store.route('/<user>/<database>/<table>.<format>', methods=['PUT'])
-@store.route('/<user>/<database>/<table>', methods=['PUT'])
-def update(user, database, table, format=None):
-    require(user, database, 'write', format)
-    _table = _get_table(user, database, table, format)
-    unique = request.args.getlist('unique')
-    if len(unique):
-        require(user, database, 'delete', format)
-    _table = _get_table(user, database, table, format)
-    reader = read_request(request, format)
-    try:
-        for row in reader:
-            if not len(row.keys()):
-                continue
-            if not _table.update_row(unique, row):
-                _table.add_row(row)
-    except StatementError, se:
-        raise WebstoreException(unicode(se), format, state='error', 
-                                code=400)
-    except NamingException, ne:
-        raise WebstoreException('Invalid column name: %s' % ne.field,
-                                format, state='error', code=400)
-    _table.commit()
-    raise WebstoreException('Table updated: %s' % table,
-                            format, state='success', code=201,
-                            url=url_for('webstore.read', user=user, database=database, table=table))
 
 @store.route('/<user>/<database>/<table>.<format>', methods=['DELETE'])
 @store.route('/<user>/<database>/<table>', methods=['DELETE'])

@@ -108,7 +108,7 @@ class WebstoreTestCase(unittest.TestCase):
         assert 'message,state,url' in response.data, response.data
         assert 'Successfully' in response.data, response.data
         assert '/hugo/create_csv_table/foo' in response.data, response.data
-
+    
     def test_index_with_tables(self):
         response = self.app.get('/hugo/fixtures', headers={'Accept': JSON})
         data = json.loads(response.data)
@@ -122,13 +122,13 @@ class WebstoreTestCase(unittest.TestCase):
                 headers={'Accept': 'application/x-sqlite3'})
         assert response.data.startswith("SQLite format 3"), response.data
 
-    def test_cannot_overwrite_table(self):
+    def test_upsert_table(self):
         response = self.app.post('/hugo/fixtures/json',
                 headers={'Accept': JSON}, content_type=JSON,
                 data=json.dumps(JSON_FIXTURE))
         body = json.loads(response.data)
-        assert response.status == "409 CONFLICT", response.status
-        assert body['state'] == 'error', body
+        assert response.status == "201 CREATED", response.status
+        assert body['state'] == 'success', body
     
     def test_create_invalid_database_name(self):
         response = self.app.post('/hugo/_fooschnasel/foo',
