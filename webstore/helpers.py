@@ -1,4 +1,5 @@
 import pkg_resources
+import logging
 from datetime import timedelta
 from functools import update_wrapper
 
@@ -6,6 +7,8 @@ from flask import make_response, request, current_app
 from werkzeug.exceptions import HTTPException
 
 from webstore.formats import render_message
+
+log = logging.getLogger(__name__)
 
 def result_proxy_iterator(rp):
     """ SQLAlchemy ResultProxies are not iterable to get a 
@@ -23,6 +26,7 @@ class WebstoreException(HTTPException):
 
     def __init__(self, message, format, state='success', 
                  code=200, url=None):
+        log.info("WSException(%s %s): %s" % (state, code, message)) 
         self.response = render_message(request, message, 
                  format, state=state, code=code, url=url)
 

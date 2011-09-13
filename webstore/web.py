@@ -1,3 +1,5 @@
+import logging
+
 from flask import request, g, render_template
 
 from webstore.core import app
@@ -30,5 +32,6 @@ def home():
 app.register_blueprint(store)
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.NOTSET)
     app.run()
 

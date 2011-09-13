@@ -1,14 +1,16 @@
 import os 
+from glob import iglob
+import logging
 
 from sqlalchemy import create_engine
 from sqlalchemy import Integer, UnicodeText, Float
 from sqlalchemy.sql import and_
-from glob import iglob
 from sqlalchemy.schema import Table, MetaData, Column
 from migrate.versioning.util import construct_engine
 
 from webstore.validation import validate_name, validate_dbname
 
+log = logging.getLogger(__name__)
 ID_COLUMN = '__id__'
 
 class DatabaseHandler(object):
@@ -21,6 +23,7 @@ class DatabaseHandler(object):
 
     def _create_table(self, table_name):
         table_name = validate_name(table_name)
+        log.debug("Creating table: %s on %r" % (table_name, self.engine))
         table = Table(table_name, self.meta)
         col = Column(ID_COLUMN, Integer, primary_key=True)
         table.append_column(col)
@@ -83,6 +86,8 @@ class TableHandler(object):
         columns = map(validate_name, columns)
         for column in columns:
             _type = self._guess_type(column, row[column])
+            log.debug("Creating column: %s (%s) on %r" % (column, 
+                _type, self.table.name))
             col = Column(column, _type)
             col.create(self.table)
 
@@ -116,7 +121,8 @@ class TableHandler(object):
             stmt = self.table.update(self.args_to_clause(clause), row)
             rp = self.bind.execute(stmt)
             return rp.rowcount > 0
-        except KeyError: # column does not exist
+        except KeyError, ke:
+            log.warn("UPDATE: filter column does not exist: %s" % ke)
             return False
 
 class DatabaseHandlerFactory(object):
@@ -154,6 +160,7 @@ def authorizer_ro(action_code, tname, cname, sql_location, trigger):
     if action_code == sqlite3.SQLITE_PRAGMA:
         if tname in ["table_info", "index_list", "index_info"]:
             return sqlite3.SQLITE_OK
+    log.debug("Unauthorized query: %s / %s / %c " % (action_code, tname, cname))
     return sqlite3.SQLITE_DENY
 
 def authorizer_attach(action_code, tname, cname, sql_location, trigger):
@@ -177,6 +184,7 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
 
     def databases_by_user(self, user_name):
         user_directory = self._user_directory(user_name)
+        log.debug("Directory listing: %s" % user_directory)
         return (os.path.basename(db).rsplit('.', 1)[0] for db in \
                 iglob(user_directory + '/*.db'))
 
@@ -192,6 +200,7 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
             if authorizer is not None:
                 conn.set_authorizer(authorizer)
             return conn
+        log.debug("Loading SQLite DB: %s" % path)
         handler = DatabaseHandler(create_engine('sqlite:///' + path, 
             creator=make_conn))
         handler.authorizer = authorizer
@@ -208,6 +217,7 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
         operation. """
         connection.connection.set_authorizer(authorizer_attach)
         path = self.database_path(user_name, database_name)
+        log.debug("Attaching SQLite DB: %s (as %s)" % (path, alias))
         connection.execute("ATTACH DATABASE ? AS ?", path, alias)
         connection.connection.set_authorizer(authorizer)
         return connection
