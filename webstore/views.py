@@ -13,7 +13,7 @@ from webstore.formats import render_table, render_message
 from webstore.formats import read_request, response_format
 from webstore.formats import SQLITE
 from webstore.helpers import WebstoreException
-from webstore.helpers import crossdomain
+from webstore.helpers import crossdomain, result_proxy_iterator
 from webstore.validation import NamingException
 from webstore.security import require, has
 from webstore.database import SQLiteDatabaseHandlerFactory
@@ -27,16 +27,6 @@ def jsonp_callback_register():
     # end up in the query string, we'll keep it around on the 
     # request global and then read it in the table generator.
     g.callback = request.args.get('_callback')
-
-def _result_proxy_iterator(rp):
-    """ SQLAlchemy ResultProxies are not iterable to get a 
-    list of dictionaries. This is to wrap them. """
-    keys = rp.keys()
-    while True:
-        row = rp.fetchone()
-        if row is None:
-            break
-        yield dict(zip(keys, row))
 
 def _get_table(user, database, table, format):
     """ Locate a named table or raise a 404. """
@@ -163,7 +153,7 @@ def sql(user, database, format=None):
         params_dict = params if isinstance(params, dict) else {}
         params_list = [] if isinstance(params, dict) or not params else params
         results = connection.execute(query, *params_list, **params_dict)
-        return render_table(request, _result_proxy_iterator(results), 
+        return render_table(request, result_proxy_iterator(results), 
                             results.keys(), format)
     except NamingException, ne:
         raise WebstoreException('Invalid attach DB name: %s' % ne.field,
@@ -247,7 +237,7 @@ def read(user, database, table, format=None):
     except OperationalError, oe:
         raise WebstoreException('Invalid query: %s' % oe.message,
             format, state='error', code=400)
-    return render_table(request, _result_proxy_iterator(results), 
+    return render_table(request, result_proxy_iterator(results), 
                         results.keys(), format, headers=headers)
 
 @store.route('/<user>/<database>/<table>/row/<row>.<format>', methods=['GET', 'OPTIONS'])
@@ -275,7 +265,7 @@ def row(user, database, table, row, format=None):
     except OperationalError, oe:
         raise WebstoreException('Invalid query: %s' % oe.message,
             format, state='error', code=400)
-    return render_table(request, _result_proxy_iterator(results), 
+    return render_table(request, result_proxy_iterator(results), 
                         results.keys(), format)
 
 @store.route('/<user>/<database>/<table>/schema.<format>', methods=['GET', 'OPTIONS'])
@@ -317,7 +307,7 @@ def distinct(user, database, table, column, format=None):
     except OperationalError, oe:
         raise WebstoreException('Invalid query: %s' % oe.message,
             format, state='error', code=400)
-    return render_table(request, _result_proxy_iterator(results), 
+    return render_table(request, result_proxy_iterator(results), 
                         results.keys(), format)
 
 @store.route('/<user>/<database>/<table>.<format>', methods=['DELETE'])

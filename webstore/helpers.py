@@ -7,6 +7,16 @@ from werkzeug.exceptions import HTTPException
 
 from webstore.formats import render_message
 
+def result_proxy_iterator(rp):
+    """ SQLAlchemy ResultProxies are not iterable to get a 
+    list of dictionaries. This is to wrap them. """
+    keys = rp.keys()
+    while True:
+        row = rp.fetchone()
+        if row is None:
+            break
+        yield dict(zip(keys, row))
+
 class WebstoreException(HTTPException):
     """ Cancel abortion of the current task and return with
     the given message and error code. """
