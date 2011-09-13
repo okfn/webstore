@@ -9,6 +9,7 @@ import unittest
 import tempfile
 
 JSON = 'application/json'
+JSONT = 'application/json+tuples'
 CSV = 'text/csv'
 
 CSV_FIXTURE = """date,temperature,place
@@ -26,6 +27,10 @@ JSON_TYPED_FIXTURE = [{'int_col': 5, 'str_col': 'foo',
                        'float_col': 6.55, 'null_col': None},
                       {'int_col': 2, 'str_col': 'bar',
                        'float_col': 2.1, 'null_col': 5}]
+
+JSONTUPLES_FIXTURE = {"keys": ["foo", "bar"], 
+                      "values": [["fval1", "bval1"],
+                                 ["fval2", "bval2"]]}
 
 CKAN_DB_FIXTURE = os.path.join(os.path.dirname(__file__), 'ckan.db')
 
@@ -85,6 +90,22 @@ class WebstoreTestCase(unittest.TestCase):
         assert 'Successfully' in body['message'], body
         assert 'success' == body['state'], body
         assert '/hugo/create_json_table/foo' == body['url'], body
+    
+    def test_create_json_tuples_table(self):
+        response = self.app.post('/hugo/create_jsont_table?table=foo',
+                headers={'Accept': JSON}, content_type=JSONT,
+                data=json.dumps(JSONTUPLES_FIXTURE))
+        body = json.loads(response.data)
+        assert 'Successfully' in body['message'], body
+        assert 'success' == body['state'], body
+        assert '/hugo/create_jsont_table/foo' == body['url'], body
+        response = self.app.get('/hugo/create_jsont_table/foo',
+                headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert len(body)==2,body
+        assert body[0]['foo']=='fval1',body
+        assert body[0]['bar']=='bval1',body
+        assert body[1]['foo']=='fval2',body
     
     def test_create_typed_json_table(self):
         response = self.app.post('/hugo/foobar?table=typed',
@@ -158,6 +179,17 @@ class WebstoreTestCase(unittest.TestCase):
             headers={'Accept': JSON})
         body = json.loads(response.data)
         assert len(body) == len(JSON_FIXTURE), body
+    
+    def test_read_json_tuples_representation(self):
+        response = self.app.get('/hugo/fixtures/json',
+            headers={'Accept': JSONT})
+        body = json.loads(response.data)
+        assert 'keys' in body, body
+        assert 'values' in body, body
+        keys = body.get('keys')
+        values = body.get('values')
+        assert len(keys) == 3, keys
+        assert len(keys) == len(values[0]), values
     
     def test_read_json_representation_with_limit_and_offset(self):
         response = self.app.get('/hugo/fixtures/csv?_limit=2&_offset=2',

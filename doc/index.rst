@@ -74,6 +74,18 @@ This can make accessing resources very easy, as simple XMLHTTPRequest calls can
 be used. CORS is not supported by all browsers, though, and thus JSONP still 
 has a use case.
 
+JSON tuples (ordered JSON)
+--------------------------
+
+Since JSON dictionaries don't have any order associated with them, webstore
+offers a secondary JSON encoding, called JSONtuples. This format can both be
+written and read and provoked by setting the `application/json+tuples` content
+type or by appending the `.jsontuples` suffix to a path. 
+
+The generated output will contain a dictionary with two entries: `keys` for an
+ordered listing of the column names and `values`, which contains a list of 
+tuples, each a row of data ordered in the same order as given by the `keys`.
+
 Sub-resources of tables
 -----------------------
 
