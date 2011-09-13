@@ -38,9 +38,11 @@ See the full documentation at: http://webstore.readthedocs.org/en/latest/
     always_login = webstore.security:always_login
     never_login = webstore.security:never_login
     ckan = webstore.ckan:check_ckan_login
+    sw_auth = webstore.swauth:sw_auth
 
     [webstore.authz]
     default = webstore.security:default_has
+    sw_has = webstore.swauth:sw_has
     '''
 )
 
