@@ -2,6 +2,8 @@ from webstore.formats.ft_csv import csv_request, \
         csv_table, csv_message
 from webstore.formats.ft_json import json_request, \
         json_table, json_message
+from webstore.formats.ft_jsontuples import jsontuples_request, \
+        jsontuples_table, jsontuples_message
 from webstore.formats.ft_basic import basic_request, \
         basic_table, basic_message
 from webstore.formats.ft_gviz import gviz_table
@@ -12,7 +14,9 @@ MIME_TYPES = {
         'text/html': 'html',
         'application/xhtml+xml': 'html',
         'application/json': 'json',
+        'application/json+tuples': 'jsontuples',
         'text/javascript': 'json',
+        'text/javascript+tuples': 'jsontuples',
         'text/csv': 'csv',
         'application/json+vnd.google.gviz': 'gviz',
         SQLITE: 'db'
@@ -40,6 +44,8 @@ def render_table(request, table, keys, format, headers=None):
         return csv_table(table, keys, headers=headers)
     elif format == 'json':
         return json_table(table, keys, headers=headers)
+    elif format == 'jsontuples':
+        return jsontuples_table(table, keys, headers=headers)
     elif format == 'gviz':
         return gviz_table(table, keys, headers=headers)
     else:
@@ -56,6 +62,8 @@ def render_message(request, message, format,
         return csv_message(message, state=state, url=url, code=code)
     elif format == 'json':
         return json_message(message, state=state, url=url, code=code)
+    elif format == 'jsontuples':
+        return jsontuples_message(message, state=state, url=url, code=code)
     else:
         return basic_message(message, state=state, url=url, code=code)
 
@@ -79,6 +87,8 @@ def read_request(request, format):
         return csv_request(request)
     elif format == 'json':
         return json_request(request)
+    elif format == 'jsontuples':
+        return jsontuples_request(request)
     else:
         return basic_request(request)
 

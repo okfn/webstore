@@ -13,7 +13,6 @@ def json_request(request):
         for row in json:
             yield row
 
-
 def _generator(table, callback):
     yield callback + '([' if callback else '['
     iter = table.__iter__()
