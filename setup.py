@@ -23,6 +23,7 @@ See the full documentation at: http://webstore.readthedocs.org/en/latest/
     license = 'MIT',
     url = 'http://webstore.thedatahub.org/',
     download_url = '',
+    include_package_data = True,
     classifiers = [
         'Development Status :: 3 - Alpha',
         'Environment :: Console',

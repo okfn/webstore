@@ -1,0 +1,2 @@
+recursive-include webstore/templates *
+recursive-include webstore/static *
