@@ -1,6 +1,0 @@
-python-dateutil==1.2
-SQLAlchemy==0.7.1
-Flask==0.7.1
-ipdb==0.4
-PasteScript==1.7.3
-sqlalchemy-migrate>=0.7.1
