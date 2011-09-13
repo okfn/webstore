@@ -29,8 +29,8 @@ JSON_TYPED_FIXTURE = [{'int_col': 5, 'str_col': 'foo',
                        'float_col': 2.1, 'null_col': 5}]
 
 JSONTUPLES_FIXTURE = {"keys": ["foo", "bar"], 
-                      "values": [["fval1", "bval1"],
-                                 ["fval2", "bval2"]]}
+                      "data": [["fval1", "bval1"],
+                               ["fval2", "bval2"]]}
 
 CKAN_DB_FIXTURE = os.path.join(os.path.dirname(__file__), 'ckan.db')
 
@@ -185,9 +185,9 @@ class WebstoreTestCase(unittest.TestCase):
             headers={'Accept': JSONT})
         body = json.loads(response.data)
         assert 'keys' in body, body
-        assert 'values' in body, body
+        assert 'data' in body, body
         keys = body.get('keys')
-        values = body.get('values')
+        values = body.get('data')
         assert len(keys) == 3, keys
         assert len(keys) == len(values[0]), values
     

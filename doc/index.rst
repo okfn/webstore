@@ -83,7 +83,7 @@ written and read and provoked by setting the `application/json+tuples` content
 type or by appending the `.jsontuples` suffix to a path. 
 
 The generated output will contain a dictionary with two entries: `keys` for an
-ordered listing of the column names and `values`, which contains a list of 
+ordered listing of the column names and `data`, which contains a list of 
 tuples, each a row of data ordered in the same order as given by the `keys`.
 
 Sub-resources of tables

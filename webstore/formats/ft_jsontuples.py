@@ -8,13 +8,13 @@ from flask import Response, g
 def jsontuples_request(request):
     json = loads(request.data)
     keys = json.get('keys', [])
-    for row in json.get('values', []):
+    for row in json.get('data', []):
         yield dict(zip(keys, row))
 
 def _generator(table, callback, keys):
     if callback:
         yield callback + '('
-    yield '{"keys": %s, "values": [' % dumps(keys)
+    yield '{"keys": %s, "data": [' % dumps(keys)
     iter = table.__iter__()
     has_next, first = True, True
     while has_next:
@@ -36,11 +36,10 @@ def jsontuples_table(table, keys, headers=None):
 
 def jsontuples_message(message, state='error', url=None, code=200):
     keys, values = ['message', 'state'], [message, state]
-    obj = {'message': message, 'state': state}
     if url is not None:
         keys.append('url')
         values.append(url)
-    response = Response(dumps({'keys': keys, 'values': [values]}), status=code, 
+    response = Response(dumps({'keys': keys, 'data': [values]}), status=code, 
                         mimetype='application/json')
     if url is not None:
         response.headers['Location'] = url
