@@ -16,7 +16,11 @@
         {% for row in rows %}
           <tr>
             {% for k in keys %}
-              <td>{{ row.get(k, '') }}</td>
+              {% if row.get(k) == None %}
+                <td></td>
+              {% else %}
+                <td>{{ row.get(k, '') }}</td>
+              {% endif %}
             {% endfor %}
           </tr>
         {% endfor %}
