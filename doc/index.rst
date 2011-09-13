@@ -198,18 +198,20 @@ An example of using this could look like this::
 If you need to rely on SQL parameter binding or database attachment
 (see below), you can submit a JSON envelope instead of sending raw 
 SQL strings. This expects the same type of put request with a content 
-type of `application/json`::
+type of `application/json` and a body in the following format::
 
   {
-   "query": "SELECT * FROM .... WHERE x = ?",
+   "query": "SELECT * FROM .. WHERE x = ?",
    "params": [5],
-   "attach": [{"user": "db_user", "database": "db_name", "alias": "short"},
-              ...]
+   "attach": [{
+               "user": "db_user", 
+               "database": "db_name", 
+               "alias": "short"},
+              ..]
   }
 
-The ``query`` aspect is easily explained. ``params`` can be either a
-list of values to be bound in the query or a dictionary (if you're using
-named aliases). 
+``params`` can be either a list or dictionary of values to be bound in 
+the query, depending on whether you're using positional or named parameters.
 
 Database attachment is a special feature of SQLite that will allow 
 queries across several SQLite files. If you attach a database with a 
@@ -217,8 +219,8 @@ given alias, its tables will be available with the ``alias`` prefix. If
 no alias is specified, the database name will be used. If you don't specify
 a user, the same user as for the main database will be assumed.
 
-Note. This is database-specific, so you need to know whether you are
-speaking to a PostgreSQL or SQLite-backed webstore.
+Note. All SQL queries are somewhae´t database-specific, so you need to know 
+whether you are speaking to a PostgreSQL or SQLite-backed webstore.
 
 Downloading the whole database (SQLite)
 ---------------------------------------
