@@ -26,6 +26,7 @@ cache = LRUTimeoutCache(10000)
 
 def sw_auth(request):
     """ Authenticate an incoming request. """
+    # TODO: make sure this only happens from internal services!
     current_app.sw_scrapername = request.headers.get('X-Scrapername')
 
 def sw_has(user, database, action):
