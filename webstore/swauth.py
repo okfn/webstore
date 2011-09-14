@@ -13,21 +13,28 @@ Checking read and write permissions against ScraperWiki has two cases:
   its data graph of attachable databases for each scraper.
 
 """
+from hashlib import sha256
 from urlparse import urljoin
 import urllib
-#import json
 import logging
 
 from flask import current_app
 from webstore.lru import LRUTimeoutCache
+from webstore.helpers import WebstoreException
 
 log = logging.getLogger(__name__)
 cache = LRUTimeoutCache(10000)
 
 def sw_auth(request):
     """ Authenticate an incoming request. """
-    # TODO: make sure this only happens from internal services!
     current_app.sw_scrapername = request.headers.get('X-Scrapername')
+    if current_app.sw_scrapername is not None:
+        answer = sha256(current_app.sw_scrapername + \
+                        current_app.config['SW_SECRET']).hexdigest()
+        candidate = request.headers.get('X-Scraper-Verified')
+        if candidate != answer:
+            raise WebstoreException('Invalid ScraperWiki verification!', None,
+                                state='error', code=401)
 
 def sw_has(user, database, action):
     """ Authorize a specific action on a given database. """
