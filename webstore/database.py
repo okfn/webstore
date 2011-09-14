@@ -186,12 +186,20 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
         user_directory = self._user_directory(user_name)
         log.debug("Directory listing: %s" % user_directory)
         return (os.path.basename(db).rsplit('.', 1)[0] for db in \
-                iglob(user_directory + '/*.db'))
+                iglob(user_directory + '/*'))
 
     def database_path(self, user_name, database_name):
-        user_directory = self._user_directory(user_name)
         database_name = validate_dbname(database_name)
-        return os.path.join(user_directory, database_name + '.db')
+        db_directory =  os.path.join(self._user_directory(user_name),
+                                     database_name)
+
+        # TODO: workaround for old-format stores.
+        if os.path.isfile(db_directory  + '.db'):
+            return db_directory  + '.db'
+
+        if not os.path.isdir(db_directory):
+            os.makedirs(db_directory)
+        return os.path.join(db_directory, 'default.sqlite')
 
     def create(self, user_name, database_name, authorizer=authorizer_rw):
         path = self.database_path(user_name, database_name)
