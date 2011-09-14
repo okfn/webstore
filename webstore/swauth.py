@@ -46,8 +46,8 @@ def sw_has(user, database, action):
         return cache[cache_key]
     url = urljoin(current_app.config['SW_URL'], 'webstoreauth')
     query = '?scrapername=%s&attachtoname=%s' % (
-            urllib.quote(sw_scrapername),
-            urllib.quote(database))
+            urllib.quote(sw_scrapername or ''),
+            urllib.quote(database or ''))
     try:
         uh = urllib.urlopen(url + query)
         # not actual JSON:
