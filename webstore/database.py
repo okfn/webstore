@@ -199,7 +199,7 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
 
         if not os.path.isdir(db_directory):
             os.makedirs(db_directory)
-        return os.path.join(db_directory, 'default.sqlite')
+        return os.path.join(db_directory, 'defaultdb.sqlite')
 
     def create(self, user_name, database_name, authorizer=authorizer_rw):
         path = self.database_path(user_name, database_name)
