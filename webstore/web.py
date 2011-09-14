@@ -1,6 +1,6 @@
 import logging
 
-from flask import request, g, render_template
+from flask import request, g, render_template, abort
 
 from webstore.core import app
 from webstore.helpers import entry_point_function
@@ -24,6 +24,13 @@ def login():
                               format, state='success', code=401)
     response.headers['WWW-Authenticate'] = 'Basic realm="WebStore access"'
     return response
+
+@app.route('/favicon.ico')
+@app.route('/robots.txt')
+@app.route('/index.html')
+@app.route('/scripts/<path:any>')
+def handle(any=None):
+    abort(404)
 
 @app.route('/')
 def home():
