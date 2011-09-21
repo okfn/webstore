@@ -198,12 +198,14 @@ def upsert(user, database, table, format=None):
     if len(unique):
         require(user, database, 'delete', format)
     reader = read_request(request, format)
+    new_count = 0
     try:
         for row in reader:
             if not len(row.keys()):
                 continue
             if not _table.update_row(unique, row):
                 _table.add_row(row)
+            new_count += 1
     except StatementError, se:
         raise WebstoreException(unicode(se), format, state='error', 
                                 code=400)
@@ -211,7 +213,7 @@ def upsert(user, database, table, format=None):
         raise WebstoreException('Invalid column name: %s' % ne.field,
                                 format, state='error', code=400)
     _table.commit()
-    raise WebstoreException('Successfully saved: %s' % table,
+    raise WebstoreException('Successfully saved: %s (%s rows)' % (table, new_count),
                 format, state='success', code=201,
                 url=url_for('webstore.read', user=user, database=database, table=table))
 

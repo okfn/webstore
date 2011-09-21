@@ -149,6 +149,7 @@ class DatabaseHandlerFactory(object):
 
 import sqlite3
 def authorizer_ro(action_code, tname, cname, sql_location, trigger):
+    #print action_code, tname, cname, sql_location, trigger
     # thanks to ScraperWiki 
     #print (action_code, tname, cname, sql_location, trigger)
     readonlyops = [ sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ,
@@ -164,11 +165,13 @@ def authorizer_ro(action_code, tname, cname, sql_location, trigger):
     return sqlite3.SQLITE_DENY
 
 def authorizer_attach(action_code, tname, cname, sql_location, trigger):
+    #print action_code, tname, cname, sql_location, trigger
     if action_code == sqlite3.SQLITE_ATTACH: 
         return sqlite3.SQLITE_OK
     return authorizer_ro(action_code, tname, cname, sql_location, trigger)
 
 def authorizer_rw(action_code, tname, cname, sql_location, trigger):
+    #print action_code, tname, cname, sql_location, trigger
     if sql_location == None or sql_location == 'main':  
         return sqlite3.SQLITE_OK
     return authorizer_ro(action_code, tname, cname, sql_location, trigger)

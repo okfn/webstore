@@ -7,7 +7,6 @@ Installation and Usage
 
 Install the code and requirements (you may wish to create a virtualenv first)::
 
-  pip install -r pip-requirements.txt
   # install webstore code
   pip install -e .
 
