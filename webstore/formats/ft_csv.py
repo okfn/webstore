@@ -5,12 +5,22 @@ from flask import Response
 #from ilines import ilines
 
 def csv_request(request):
-    reader = DictReader(request.stream)
+    reader = DictReader(StringIO(request.data))
     for row in reader:
-        yield dict([(k, v.decode('utf-8') if v is not None else '') \
-                for k,v in row.items()])
-        if request.stream.is_exhausted:
-            break
+        yield row
+
+    # streaming disabled for now
+    #
+    # with streaming, if an incomplete csv file was sent (for example, 'test/file'),
+    # DictReader would go into an infinite loop waiting for the rest of the file,
+    # causing the webstore process to hang
+    #
+    # reader = DictReader(request.stream)
+    # for row in reader:
+    #     yield dict([(k, v.decode('utf-8') if v is not None else '') \
+    #             for k,v in row.items()])
+    #     if request.stream.is_exhausted:
+    #         break
 
 def _csv_line(keys, row):
     sio = StringIO()
