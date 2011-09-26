@@ -17,7 +17,7 @@ from webstore.helpers import WebstoreException
 from webstore.helpers import crossdomain, result_proxy_iterator
 from webstore.validation import NamingException
 from webstore.security import require, has
-from webstore.database import SQLiteDatabaseHandlerFactory
+from webstore.database import SQLiteDatabaseHandlerFactory, UserNotFound
 
 log = logging.getLogger(__name__)
 store = Blueprint('webstore', __name__)
@@ -84,10 +84,28 @@ def databases(user, format=None):
     #require(user, database, 'read', format)
     try:
         databases = []
-        for database in db_factory.databases_by_user(user):
+
+        # TODO: this is a hack, find a nicer way to do this
+        #
+        # we want to allow user names to contain a '.', eg: 'thedatahub.org'
+        # this breaks the routing for this function
+        #
+        # so if format exists, check that it should not be part of the user name
+        if format:
+            try:
+                user_databases = db_factory.databases_by_user(user + '.' + format)
+                user = user + '.' + format
+            except UserNotFound:
+                user_databases = db_factory.databases_by_user(user)
+        else:
+            user_databases = db_factory.databases_by_user(user)
+        
+        for database in user_databases:
             url = url_for('webstore.index', user=user, database=database)
             databases.append({'name': database, 'url': url})
         return render_table(request, databases, ['name', 'url'], format)
+    except UserNotFound:
+        raise WebstoreException('User not found', format, state='error', code=404)
     except NamingException, ne:
         raise WebstoreException('Invalid name: %s' % ne.field,
                 format, state='error', code=400)
