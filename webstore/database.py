@@ -8,7 +8,7 @@ from sqlalchemy.sql import and_
 from sqlalchemy.schema import Table, MetaData, Column
 from migrate.versioning.util import construct_engine
 
-from webstore.validation import validate_name, validate_dbname
+from webstore.validation import validate_name, validate_dbname, validate_username
 
 log = logging.getLogger(__name__)
 ID_COLUMN = '__id__'
@@ -180,7 +180,7 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
 
     def _user_directory(self, user_name):
         prefix = self.app.config.get('SQLITE_DIR', '/tmp')
-        user_directory = os.path.join(prefix, validate_dbname(user_name))
+        user_directory = os.path.join(prefix, validate_username(user_name))
         if not os.path.isdir(user_directory):
             os.makedirs(user_directory)
         return user_directory
