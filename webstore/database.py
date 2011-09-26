@@ -13,6 +13,9 @@ from webstore.validation import validate_name, validate_dbname, validate_usernam
 log = logging.getLogger(__name__)
 ID_COLUMN = '__id__'
 
+class UserNotFound(Exception):
+    pass
+
 class DatabaseHandler(object):
     """ Handle database-wide operations. """
 
@@ -182,8 +185,13 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
         prefix = self.app.config.get('SQLITE_DIR', '/tmp')
         user_directory = os.path.join(prefix, validate_username(user_name))
         if not os.path.isdir(user_directory):
-            os.makedirs(user_directory)
+            raise UserNotFound
         return user_directory
+
+    def _create_user_directory(self, user_name):
+        prefix = self.app.config.get('SQLITE_DIR', '/tmp')
+        user_directory = os.path.join(prefix, validate_username(user_name))
+        os.makedirs(user_directory)
 
     def databases_by_user(self, user_name):
         user_directory = self._user_directory(user_name)
@@ -205,7 +213,12 @@ class SQLiteDatabaseHandlerFactory(DatabaseHandlerFactory):
         return os.path.join(db_directory, 'defaultdb.sqlite')
 
     def create(self, user_name, database_name, authorizer=authorizer_rw):
-        path = self.database_path(user_name, database_name)
+        try:
+            path = self.database_path(user_name, database_name)
+        except UserNotFound:
+            self._create_user_directory(user_name)
+            path = self.database_path(user_name, database_name)
+
         def make_conn():
             conn = sqlite3.connect(path, timeout=10)
             if authorizer is not None:

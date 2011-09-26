@@ -58,7 +58,7 @@ class WebstoreTestCase(unittest.TestCase):
     def test_user_databases(self):
         response = self.app.get('/xxx', headers={'Accept': JSON})
         body = json.loads(response.data)
-        assert len(body)==0
+        assert response.status.startswith("404"), response.status
         response = self.app.get('/hugo', headers={'Accept': JSON})
         body = json.loads(response.data)
         assert len(body)==1
