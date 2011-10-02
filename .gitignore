@@ -4,3 +4,4 @@ nosetests.xml
 doc/_build/*
 *.swp
 webstore/settings.py
+sandbox/*
