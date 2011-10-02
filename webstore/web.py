@@ -40,5 +40,5 @@ app.register_blueprint(store)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.NOTSET)
-    app.run()
+    app.run(host=app.config['HOST'], port=app.config['PORT'], debug=True)
 
