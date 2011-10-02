@@ -5,3 +5,4 @@ doc/_build/*
 *.swp
 webstore/settings.py
 sandbox/*
+settings_local.py

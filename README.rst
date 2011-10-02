@@ -10,6 +10,14 @@ Install the code and requirements (you may wish to create a virtualenv first)::
   # install webstore code
   pip install -e .
 
+[Optional] Add to or override the default
+settings (in webstore/default_settings.py)::
+
+    cp settings_local.py.tmpl settings_local.py by copying the provided template
+    # alternatively, if you want your config elsewhere or with different name
+    cp settings_local.py.tmpl {/my/config/file/somewhere}
+    export WEBSTORE_SETTINGS={/my/config/file/somewhere}
+
 Run the web server::
 
   python webstore/web.py
@@ -17,6 +25,7 @@ Run the web server::
 Run tests (start server first!)::
 
   python test/test_rest.py
+
 
 API Documentation
 =================
