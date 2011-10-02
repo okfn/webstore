@@ -16,5 +16,4 @@ AUTHORIZATION = {
 
 AUTH_FUNCTION = 'always_login'
 HAS_FUNCTION = 'default'
-AUTH_FUNCTION = 'always_login'
 #CKAN_DB_URI = 'postgresql://okfn@localhost/ckantest'
