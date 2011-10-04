@@ -23,7 +23,7 @@ Core Resource::
     /{user-name}/{db-name}/{table-name}
 
 Table is the central exposed resource (databases are created on-the-fly
-and may in fact not actually be seperate databases, depending on the 
+and may in fact not actually be separate databases, depending on the
 backend vendor (e.g. we can use PostgreSQL Schemas to partition the
 table space and don't actually need to create distinct databases).
 
@@ -47,7 +47,7 @@ The resource can also be filtered::
 
   GET /{user-name}/{db-name}/{table-name}?column=value
 
-To limit the number of results or to specfiy an offset, use these query
+To limit the number of results or to specify an offset, use these query
 parameters::
 
   GET /{user-name}/{db-name}/{table-name}?_limit=10&_offset=20
