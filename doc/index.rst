@@ -255,8 +255,8 @@ although users are a necessary, first-class element of the system. To still
 support users, authentication is delegated to another system or performed 
 based on rules. The preferred authentication backend is CKAN, which is used by
 directly interacting with the platform's database. This means CKAN credentials
-can be used as long as they include a valid CKAN user name (not an old
-OpenID-based login).
+can be used as long as they include a valid CKAN api key (when authenticating
+against CKAN replace the "user:password" string with your api key).
 
 Authentication can be used via a basic auth header. In the future, support for
 API keys and OAuth is planned. 

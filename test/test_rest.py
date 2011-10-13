@@ -33,6 +33,7 @@ JSONTUPLES_FIXTURE = {"keys": ["foo", "bar"],
                                ["fval2", "bval2"]]}
 
 CKAN_DB_FIXTURE = os.path.join(os.path.dirname(__file__), 'ckan.db')
+APIKEY = 'test-api-key'
 
 class WebstoreTestCase(unittest.TestCase):
 
@@ -426,12 +427,12 @@ class WebstoreTestCase(unittest.TestCase):
     def test_login_http_basic_authorization_with_ckan_db(self):
         ws.app.config['AUTH_FUNCTION'] = 'ckan'
         ws.app.config['CKAN_DB_URI'] = 'sqlite:///' + CKAN_DB_FIXTURE
-        auth = 'Basic ' + 'test:flup'.encode('base64')
+        auth = APIKEY
         response = self.app.get('/test/fixtures', headers={'Accept': JSON,
             'Authorization': auth})
         assert response.status.startswith("200"), response.status
         
-        auth = 'Basic ' + 'test:fail'.encode('base64')
+        auth = 'bad-api-key'
         response = self.app.get('/test/fixtures', headers={'Accept': JSON,
             'Authorization': auth})
         assert response.status.startswith("401"), response.status

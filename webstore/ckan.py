@@ -4,7 +4,6 @@ Here be dragons.
 Go into the innards of CKAN and look for fun stuff (i.e. user, password)
 """
 import logging
-from hashlib import sha1
 
 from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
@@ -35,20 +34,17 @@ def check_ckan_login(request):
         log.warn("No CKAN_DB_URI given, cannot authenticate!")
         return False
     if 'Authorization' in request.headers:
-        authorization = request.headers.get('Authorization')
-        authorization = authorization.split(' ', 1)[-1]
-        user, password = authorization.decode('base64').split(':', 1)
+        apikey = request.headers.get('Authorization')
         engine = create_engine(db_uri, poolclass=NullPool)
         meta = MetaData()
         meta.bind = engine
         table = Table('user', meta, autoload=True)
-        results = engine.execute(table.select(table.c.name==user))
+        results = engine.execute(table.select(table.c.apikey==apikey))
         # TODO: check for multiple matches, never trust ckan.
         record = results.first()
-        if record is not None and check_hashed_password(password,
-                record['password']):
-            return user
-        raise WebstoreException('Invalid username or password!', None,
+        if record is not None:
+            return record['name']
+        raise WebstoreException('Invalid apikey!', None,
                                 state='error', code=401)
     return None
 

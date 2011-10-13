@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'webstore',
-    version = '0.2',
+    version = '0.3a',
     packages = find_packages(),
     install_requires = [
         'python-dateutil>=1.2',
