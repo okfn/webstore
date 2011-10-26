@@ -6,7 +6,7 @@ setup(
     packages = find_packages(),
     install_requires = [
         'python-dateutil>=1.2',
-        'SQLAlchemy==0.7.1',
+        'SQLAlchemy==0.7.3',
         'Flask==0.7.1',
         'sqlalchemy-migrate>=0.7.1'
         ],
