@@ -23,3 +23,9 @@ def validate_username(name):
     if VALID_USERNAME.match(name) is None:
         raise NamingException(name)
     return name
+
+def validate_columnname(name):
+    if name.startswith('_'):
+        raise NamingException(name)
+    return name
+

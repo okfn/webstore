@@ -8,7 +8,8 @@ from sqlalchemy.sql import and_
 from sqlalchemy.schema import Table, MetaData, Column
 from migrate.versioning.util import construct_engine
 
-from webstore.validation import validate_name, validate_dbname, validate_username
+from webstore.validation import (validate_name, validate_dbname, 
+                                 validate_username, validate_columnname)
 
 log = logging.getLogger(__name__)
 ID_COLUMN = '__id__'
@@ -86,7 +87,7 @@ class TableHandler(object):
 
     def _ensure_columns(self, row):
         columns = set(row.keys()) - set(self.table.columns.keys())
-        columns = map(validate_name, columns)
+        columns = map(validate_columnname, columns)
         for column in columns:
             _type = self._guess_type(column, row[column])
             log.debug("Creating column: %s (%s) on %r" % (column, 
