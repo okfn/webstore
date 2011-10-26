@@ -7,7 +7,7 @@ setup(
     install_requires = [
         'python-dateutil>=1.2',
         'SQLAlchemy==0.7.3',
-        'Flask==0.7.1',
+        'Flask==0.8',
         'sqlalchemy-migrate>=0.7.1'
         ],
     # metadata for upload to PyPI
