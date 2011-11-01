@@ -193,7 +193,7 @@ def create(user, database, format=None):
     """ A table name needs to specified either as a query argument
     or as part of the URL. This will forward to the URL variant. """
     if not 'table' in request.args:
-        return render_message('Missing argument: table',
+        return render_message(request, 'Missing argument: table',
                 format, state='error', code=400)
     return upsert(user, database, request.args.get('table'), 
                   format=format)
