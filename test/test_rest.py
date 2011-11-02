@@ -65,12 +65,12 @@ class WebstoreTestCase(unittest.TestCase):
         assert response.status.startswith("404"), response.status
         response = self.app.get('/hugo', headers={'Accept': JSON})
         body = json.loads(response.data)
-        assert len(body)==1
-        assert body[0]['name']=='fixtures'
+        assert len(body['data'])==1
+        assert body['data'][0]['name']=='fixtures'
 
     def test_no_tables(self):
         response = self.app.get('/hugo/no_tables', headers={'Accept': JSON})
-        assert response.data == json.dumps([])
+        assert json.loads(response.data) == {"fields": [{"name": "name"}, {"name": "url"}, {"name": "columns"}], "data": []} 
     
     def test_invalid_db_name(self):
         response = self.app.get('/hugo/no such db', headers={'Accept': JSON})
@@ -105,11 +105,12 @@ class WebstoreTestCase(unittest.TestCase):
         assert '/hugo/create_jsont_table/foo' == body['url'], body
         response = self.app.get('/hugo/create_jsont_table/foo',
                 headers={'Accept': JSON})
+        
         body = json.loads(response.data)
         assert len(body)==2,body
-        assert body[0]['foo']=='fval1',body
-        assert body[0]['bar']=='bval1',body
-        assert body[1]['foo']=='fval2',body
+        assert body['data'][0]['foo']=='fval1',body
+        assert body['data'][0]['bar']=='bval1',body
+        assert body['data'][1]['foo']=='fval2',body
     
     def test_create_typed_json_table(self):
         response = self.app.post('/hugo/foobar?table=typed',
@@ -121,10 +122,10 @@ class WebstoreTestCase(unittest.TestCase):
                 headers={'Accept': JSON})
         data = json.loads(response.data)
         in_row = JSON_TYPED_FIXTURE[0]
-        out_row = data[0]
+        out_row = data['data'][0]
         assert in_row['float_col']-out_row['float_col']<0.1, out_row
         assert in_row['int_col']==out_row['int_col'], out_row
-        assert type(data[1]['null_col'])==unicode, data[1]
+        assert type(data['data'][1]['null_col'])==unicode, data[1]
 
     def test_create_csv_table(self):
         response = self.app.post('/hugo/create_csv_table?table=foo',
@@ -207,8 +208,8 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.get('/hugo/fixtures/csv?_limit=2&_offset=2',
             headers={'Accept': JSON})
         body = json.loads(response.data)
-        assert body[0].get('place')=='Galway', body
-        assert body[1].get('place')=='Berkeley', body
+        assert body['data'][0].get('place')=='Galway', body
+        assert body['data'][1].get('place')=='Berkeley', body
 
     def test_read_csv_representation(self):
         response = self.app.get('/hugo/fixtures/csv',
@@ -236,8 +237,8 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.get('/hugo/fixtures/csv?_sort=desc:temperature',
             headers={'Accept': JSON})
         body = json.loads(response.data)
-        assert body[0]['temperature'] == '8', body
-        assert body[0]['place'] == 'Berkeley', body
+        assert body['data'][0]['temperature'] == '8', body
+        assert body['data'][0]['place'] == 'Berkeley', body
     
     # FIXME: Headers do not appear in testing harness
     #def test_read_json_representation_count(self):
@@ -251,8 +252,8 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.get('/hugo/fixtures/csv/schema',
             headers={'Accept': JSON})
         body = json.loads(response.data)
-        assert len(body) == 4, body
-        for col_desc in body:
+        assert len(body['data']) == 4, body
+        for col_desc in body['data']:
             assert 'name' in col_desc, col_desc
             assert len(col_desc['name']), col_desc
             assert 'type' in col_desc, col_desc
@@ -268,8 +269,8 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.get('/hugo/foobar/typed/schema',
             headers={'Accept': JSON})
         body = json.loads(response.data)
-        assert len(body)==5, body
-        for col in body:
+        assert len(body['data'])==5, body
+        for col in body['data']:
             if col['name'] == 'float_col':
                 assert col['type']=='float', col
             if col['name'] == 'int_col':
@@ -292,7 +293,7 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.get('/hugo/fixtures/csv?climate=mild',
             headers={'Accept': JSON})
         body = json.loads(response.data)
-        assert body[0]['place'] == 'Honolulu', body
+        assert body['data'][0]['place'] == 'Honolulu', body
 
     def test_put_invalid_column_name(self):
         data = [{'invalid column': 'not good', u'_valdätion': 'priceless'}]
@@ -310,7 +311,7 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.get('/hugo/fixtures/csv?climate=mild',
             headers={'Accept': JSON})
         body = json.loads(response.data)
-        assert body[0]['place'] == 'Honolulu', body
+        assert body['data'][0]['place'] == 'Honolulu', body
 
     def test_put_additional_row_with_unique_selector(self):
         update = [{'place': 'Berkeley', 'country': 'United States'}]
@@ -321,7 +322,7 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.get('/hugo/fixtures/csv?place=Berkeley',
             headers={'Accept': JSON})
         body = json.loads(response.data)
-        assert body[0]['country'] == 'United States', body
+        assert body['data'][0]['country'] == 'United States', body
 
     def test_put_sql_request(self):
         query = 'SELECT * FROM "csv"'
@@ -329,8 +330,8 @@ class WebstoreTestCase(unittest.TestCase):
                 headers={'Accept': JSON}, content_type='text/sql',
                 data=query)
         body = json.loads(response.data)
-        assert len(body) == 6, body
-        assert body[0]['place'] is not None, body
+        assert len(body['data']) == 6, body
+        assert body['data'][0]['place'] is not None, body
     
     def test_put_sql_request_with_params(self):
         query = {'query': 'SELECT * FROM "csv" WHERE place = ?',
@@ -339,8 +340,8 @@ class WebstoreTestCase(unittest.TestCase):
                 headers={'Accept': JSON}, content_type=JSON,
                 data=json.dumps(query))
         body = json.loads(response.data)
-        assert len(body) == 3, body
-        assert body[0]['place']=='Galway', body
+        assert len(body['data']) == 3, body
+        assert body['data'][0]['place']=='Galway', body
 
         query = {'query': 'SELECT * FROM "csv" WHERE place = :foo',
                  'params': {'foo': 'Galway'}}
@@ -348,8 +349,8 @@ class WebstoreTestCase(unittest.TestCase):
                 headers={'Accept': JSON}, content_type=JSON,
                 data=json.dumps(query))
         body = json.loads(response.data)
-        assert len(body) == 3, body
-        assert body[0]['place']=='Galway', body
+        assert len(body['data']) == 3, body
+        assert body['data'][0]['place']=='Galway', body
     
     def test_put_sql_attach_database(self):
         query = {'query': 'SELECT * FROM foo."csv"',
@@ -360,8 +361,8 @@ class WebstoreTestCase(unittest.TestCase):
                 headers={'Accept': JSON}, content_type=JSON,
                 data=json.dumps(query))
         body = json.loads(response.data)
-        assert len(body) == 6, body
-        assert body[0]['place']=='Galway', body
+        assert len(body['data']) == 6, body
+        assert body['data'][0]['place']=='Galway', body
 
     def test_read_json_single_row(self):
         response = self.app.get('/hugo/fixtures/json/row/0',
@@ -372,8 +373,8 @@ class WebstoreTestCase(unittest.TestCase):
             headers={'Accept': JSON})
         body = json.loads(response.data)
         assert response.status.startswith("200"), response.status
-        assert body[0]['place'] == 'Galway', body
-        assert body[0]['temperature'] == '0', body
+        assert body['data'][0]['place'] == 'Galway', body
+        assert body['data'][0]['temperature'] == '0', body
 
     def test_read_json_distinct_column(self):
         response = self.app.get('/hugo/fixtures/json/distinct/not_a_column',
@@ -383,7 +384,7 @@ class WebstoreTestCase(unittest.TestCase):
             headers={'Accept': JSON})
         body = json.loads(response.data)
         assert response.status.startswith("200"), response.status
-        assert len(body)==2, body
+        assert len(body['data'])==2, body
 
     def test_database_index_authorization(self):
         # kill all permissions:

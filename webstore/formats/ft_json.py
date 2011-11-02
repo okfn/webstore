@@ -13,8 +13,11 @@ def json_request(request):
         for row in json:
             yield row
 
-def _generator(table, callback):
-    yield callback + '([' if callback else '['
+def _generator(table, callback, keys):
+    key_dicts = [dict(name=value) for value in keys]
+    yield callback + '({' if callback else '{'
+    yield '"fields": %s, ' % dumps(key_dicts) 
+    yield '"data": ['  
     iter = table.__iter__()
     has_next, first = True, True
     while has_next:
@@ -27,11 +30,12 @@ def _generator(table, callback):
                 yield ', '
             yield dumps(row)
         first = False
-    yield '])' if callback else ']'
+    yield ']'
+    yield '})' if callback else '}'
 
 def json_table(table, keys, headers=None):
     callback = str(g.callback) if g.callback else None
-    return Response(_generator(table, callback), mimetype='application/json',
+    return Response(_generator(table, callback, keys), mimetype='application/json',
                     direct_passthrough=True, headers=headers)
 
 def json_message(message, state='error', url=None, code=200):
