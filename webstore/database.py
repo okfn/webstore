@@ -93,7 +93,7 @@ class TableHandler(object):
             log.debug("Creating column: %s (%s) on %r" % (column, 
                 _type, self.table.name))
             col = Column(column, _type)
-            col.create(self.table)
+            col.create(self.table, connection=self.bind)
 
     def add_row(self, row):
         """ Add a row (type: dict). If any of the keys of

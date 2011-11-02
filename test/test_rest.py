@@ -23,6 +23,9 @@ CSV_FIXTURE = """date,temperature,place
 JSON_FIXTURE = [{'row1': 'rowvalue1', 'foo': 'bar'},
                 {'row1': 'value2', 'foo': 'schnasel'}]
 
+JSON_ALTER_FIXTURE = [{'row1': 'rowvalue1', 'foo': 'bar'},
+                      {'row1': 'value2', 'foo': 'schnasel', 'row3': 'master'}]
+
 JSON_TYPED_FIXTURE = [{'int_col': 5, 'str_col': 'foo', 
                        'float_col': 6.55, 'null_col': None},
                       {'int_col': 2, 'str_col': 'bar',
@@ -148,6 +151,14 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.post('/hugo/fixtures/json',
                 headers={'Accept': JSON}, content_type=JSON,
                 data=json.dumps(JSON_FIXTURE))
+        body = json.loads(response.data)
+        assert response.status == "201 CREATED", response.status
+        assert body['state'] == 'success', body
+
+    def test_upsert_alter_table(self):
+        response = self.app.post('/hugo/fixtures/json_more',
+                headers={'Accept': JSON}, content_type=JSON,
+                data=json.dumps(JSON_ALTER_FIXTURE))
         body = json.loads(response.data)
         assert response.status == "201 CREATED", response.status
         assert body['state'] == 'success', body
