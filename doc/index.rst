@@ -60,9 +60,13 @@ The query can also be sorted, either as 'asc' (ascending order) or 'desc'
 Note. It might be tempting to use '_asc' and '_desc' instead, but order
 is relevant and not provided for mixed query argument names in Werkzeug.
 
-Another useful feature of the views is result counts: any query to a table
-will have an ``X-Count`` header specifying the number of matching records 
-in the database.
+Another useful feature of the views is result counts. To get counts::
+
+  GET /{user-name}/{db-name}/{table-name}?_count=1
+
+This will give the response an ``X-Count`` header specifying the number of
+matching records and for the json it will fill in the count field in the json
+object.
 
 JSON with Padding / CORS
 ------------------------

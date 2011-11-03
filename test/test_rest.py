@@ -70,7 +70,7 @@ class WebstoreTestCase(unittest.TestCase):
 
     def test_no_tables(self):
         response = self.app.get('/hugo/no_tables', headers={'Accept': JSON})
-        assert json.loads(response.data) == {"fields": [{"name": "name"}, {"name": "url"}, {"name": "columns"}], "data": []} 
+        assert json.loads(response.data) == {"count": None, "fields": [{"name": "name"}, {"name": "url"}, {"name": "columns"}], "data": []} 
     
     def test_invalid_db_name(self):
         response = self.app.get('/hugo/no such db', headers={'Accept': JSON})
@@ -107,7 +107,7 @@ class WebstoreTestCase(unittest.TestCase):
                 headers={'Accept': JSON})
         
         body = json.loads(response.data)
-        assert len(body)==2,body
+        assert len(body['data'])==2,body
         assert body['data'][0]['foo']=='fval1',body
         assert body['data'][0]['bar']=='bval1',body
         assert body['data'][1]['foo']=='fval2',body
@@ -138,7 +138,7 @@ class WebstoreTestCase(unittest.TestCase):
     def test_index_with_tables(self):
         response = self.app.get('/hugo/fixtures', headers={'Accept': JSON})
         data = json.loads(response.data)
-        assert len(data) == 2, data
+        assert len(data['data']) == 2, data
     
     def test_index_db_download(self):
         response = self.app.get('/hugo/ghost', 
@@ -191,7 +191,14 @@ class WebstoreTestCase(unittest.TestCase):
         response = self.app.get('/hugo/fixtures/json',
             headers={'Accept': JSON})
         body = json.loads(response.data)
-        assert len(body) == len(JSON_FIXTURE), body
+        assert len(body['data']) == len(JSON_FIXTURE), body
+
+    def test_read_json_representation_with_count(self):
+        response = self.app.get('/hugo/fixtures/json?_count=1',
+            headers={'Accept': JSON})
+        body = json.loads(response.data)
+        assert len(body['data']) == len(JSON_FIXTURE), body
+        assert body['count'] == len(JSON_FIXTURE), len(JSON_FIXTURE)
     
     def test_read_json_tuples_representation(self):
         response = self.app.get('/hugo/fixtures/json',

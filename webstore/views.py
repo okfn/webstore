@@ -243,6 +243,8 @@ def read(user, database, table, format=None):
     _table = _get_table(user, database, table, format)
     params, select_args = _request_query(_table, request.args,
                                          format)
+    # pop count here so as not to raise invalid filter error
+    count = params.pop('_count', '') 
     try:
         clause = _table.args_to_clause(params)
     except KeyError, ke:
@@ -255,10 +257,12 @@ def read(user, database, table, format=None):
 
         # produce a count 
         # TODO: make this optional?
-        count_statement = select([func.count()], clause, _table.table)
-        count = _table.bind.execute(count_statement).fetchone()[0]
-        log.debug("Results: %s" % count)
-        headers = {'X-Count': count}
+        headers = {}
+        if count.lower() in ['1', 'true']:
+            count_statement = select([func.count()], clause, _table.table)
+            count = _table.bind.execute(count_statement).fetchone()[0]
+            log.debug("Results: %s" % count)
+            headers['X-Count'] = count
 
     except OperationalError, oe:
         raise WebstoreException('Invalid query: %s' % oe.message,
