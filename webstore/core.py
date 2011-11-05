@@ -43,6 +43,7 @@ def setup_logging(app):
         file_handler.setLevel(log_level)
         app.logger.addHandler(file_handler)
         logger = logging.getLogger('webstore')
+        logger.setLevel(log_level)
         logger.addHandler(file_handler)
 
 app = create_app()
