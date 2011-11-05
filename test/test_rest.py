@@ -35,9 +35,6 @@ JSONTUPLES_FIXTURE = {"keys": ["foo", "bar"],
                       "data": [["fval1", "bval1"],
                                ["fval2", "bval2"]]}
 
-CKAN_DB_FIXTURE = os.path.join(os.path.dirname(__file__), 'ckan.db')
-APIKEY = 'test-api-key'
-
 class WebstoreTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -393,6 +390,29 @@ class WebstoreTestCase(unittest.TestCase):
         assert response.status.startswith("200"), response.status
         assert len(body['data'])==2, body
 
+
+CKAN_DB_FIXTURE = os.path.join(os.path.dirname(__file__), 'ckan.db')
+APIKEY = 'test-api-key'
+class AuthAndAuthzTestCase(unittest.TestCase):
+    def setUp(self):
+        ws.app.config['SQLITE_DIR'] = tempfile.mkdtemp()
+        ws.app.config['TESTING'] = True
+        ws.app.config['AUTHORIZATION']['world'] = \
+                ['read', 'write', 'delete']
+        self.app = ws.app.test_client()
+        self.make_fixtures()
+
+    def tearDown(self):
+        shutil.rmtree(ws.app.config['SQLITE_DIR'])
+
+    def make_fixtures(self):
+        self.app.post('/hugo/fixtures?table=json',
+                content_type=JSON,
+                data=json.dumps(JSON_FIXTURE))
+        self.app.post('/hugo/fixtures?table=csv',
+                content_type=CSV,
+                data=CSV_FIXTURE)
+
     def test_database_index_authorization(self):
         # kill all permissions:
         ws.app.config['AUTHORIZATION']['world'] = []
@@ -457,10 +477,6 @@ class WebstoreTestCase(unittest.TestCase):
         assert response.status.startswith("401"), response.status
 
 
-
 if __name__ == '__main__':
     unittest.main()
-
-
-
 
