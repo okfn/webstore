@@ -52,20 +52,24 @@ Production Deployment
 This will vary from system to system but here are some tips. Basic setup is as
 for installation.
 
-Sample WSGI file::
+  * Sample WSGI file::
 
-  import os, sys
-  sys.stdout = sys.stderr
-  os.environ['WEBSTORE_SETTINGS'] = '/path/to/settings.py'
-  # this assumes you have installed into virtualenv
-  instance_dir = '/path/to/virtualenv'
-  pyenv_bin_dir = os.path.join(instance_dir, 'bin')
-  activate_this = os.path.join(pyenv_bin_dir, 'activate_this.py')
-  execfile(activate_this, dict(__file__=activate_this))
-  from webstore.web import app as application
+    import os, sys
+    sys.stdout = sys.stderr
+    os.environ['WEBSTORE_SETTINGS'] = '/path/to/settings.py'
+    # this assumes you have installed into virtualenv
+    instance_dir = '/path/to/virtualenv'
+    pyenv_bin_dir = os.path.join(instance_dir, 'bin')
+    activate_this = os.path.join(pyenv_bin_dir, 'activate_this.py')
+    execfile(activate_this, dict(__file__=activate_this))
+    from webstore.web import app as application
 
-Database directory: in your settings you will have specified a database
-directory. Make sure this is readable and writable by the web server user.
+  * Database directory: in your settings you will have specified a database
+    directory. Make sure this is readable and writable by the web server user.
+
+  * Apache modwsgi config. If you use modwsgi ensure you have::
+
+      WSGIPassAuthorization On
 
 
 Authentication Integration
