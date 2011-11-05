@@ -8,6 +8,8 @@ from webstore.formats import render_message
 
 from webstore.views import store
 
+logger = logging.getLogger('webstore')
+
 @app.before_request
 def check_authentication():
     check_function = entry_point_function(app.config['AUTH_FUNCTION'],
