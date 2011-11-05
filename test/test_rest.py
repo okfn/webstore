@@ -397,6 +397,7 @@ class AuthAndAuthzTestCase(unittest.TestCase):
     def setUp(self):
         ws.app.config['SQLITE_DIR'] = tempfile.mkdtemp()
         ws.app.config['TESTING'] = True
+        ws.app.config['AUTH_FUNCTION'] = 'always_login'
         ws.app.config['AUTHORIZATION']['world'] = \
                 ['read', 'write', 'delete']
         self.app = ws.app.test_client()
