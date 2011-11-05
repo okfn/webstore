@@ -440,6 +440,13 @@ class AuthAndAuthzTestCase(unittest.TestCase):
                     data=json.dumps(record))
         assert response.status.startswith("403"), response.status
 
+        response = self.app.post('/hugo/fixtures/authz', 
+                    headers={'Accept': JSON}, content_type=JSON, 
+                    data=json.dumps(record),
+                    environ_base={'REMOTE_USER': 'hugo'}
+                    )
+        assert response.status.startswith("201"), response.status
+
         ws.app.config['AUTHORIZATION']['world'] = ['write']
         response = self.app.post('/hugo/fixtures/authz', 
                     headers={'Accept': JSON}, content_type=JSON, 
@@ -452,8 +459,12 @@ class AuthAndAuthzTestCase(unittest.TestCase):
         assert response.status.startswith("401"), response.status
 
     def test_login_http_basic_authorization(self):
-        ws.app.config['AUTH_FUNCTION'] = 'always_login'
         auth = 'Basic ' + 'hugo:hungry'.encode('base64')
+        ws.app.config['AUTHORIZATION']['world'] = []
+        # check test is actually doing something
+        response = self.app.get('/hugo/fixtures', headers={'Accept': JSON})
+        assert response.status.startswith("403"), response.status
+        # now start proper tests
         response = self.app.get('/hugo/fixtures', headers={'Accept': JSON,
             'Authorization': auth})
         assert response.status.startswith("200"), response.status
@@ -465,9 +476,14 @@ class AuthAndAuthzTestCase(unittest.TestCase):
         assert response.status.startswith("401"), response.status
     
     def test_login_http_basic_authorization_with_ckan_db(self):
+        ws.app.config['AUTHORIZATION']['world'] = []
         ws.app.config['AUTH_FUNCTION'] = 'ckan'
         ws.app.config['CKAN_DB_URI'] = 'sqlite:///' + CKAN_DB_FIXTURE
         auth = APIKEY
+        # check test is actually doing something
+        response = self.app.get('/hugo/fixtures', headers={'Accept': JSON})
+        assert response.status.startswith("403"), response.status
+        # now do the proper auth check
         response = self.app.get('/test/fixtures', headers={'Accept': JSON,
             'Authorization': auth})
         assert response.status.startswith("200"), response.status
