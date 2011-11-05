@@ -66,19 +66,10 @@ Database directory: in your settings you will have specified a database
 directory. Make sure this is readable and writable by the web server user.
 
 
-Integration with Other Systems
-==============================
+Authentication Integration
+==========================
 
-TODO: Specify how to delegate authentication to user database in some other system.
-
-ScraperWiki
------------
-
-We could implement ScraperWikis RPC API as an extension in order to
-allow scrapers to write to the store directly::
-
-  /{user-name}/{db-name}/_swrpc?owner=...&database...&data={jsondict}
-
-Alternatively, we could implement a 'slurper' that downloads ScraperWiki 
-result data and loads it into webstore.
+This is discussed further in the docs but we note here that
+settings_local.py.tmpl provides standard authentication setup plus example on
+how to connect to a CKAN instance.
 
