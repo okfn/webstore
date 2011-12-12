@@ -10,6 +10,9 @@ setup(
         'Flask==0.8',
         'sqlalchemy-migrate>=0.7.1'
         ],
+    setup_requires=[
+        'nose==1.1.2'
+        ],
     # metadata for upload to PyPI
     author = 'Open Knowledge Foundation',
     author_email = 'info@okfn.org',
