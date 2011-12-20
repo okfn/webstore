@@ -459,18 +459,23 @@ class AuthAndAuthzTestCase(unittest.TestCase):
         assert response.status.startswith("401"), response.status
 
     def test_login_http_basic_authorization(self):
-        auth = 'Basic ' + 'hugo:hungry'.encode('base64')
+        # base64 encoding introduces newlines, which werkzeug doesn't like so 
+        # we need to cleanup the strings.
+        auth = ('Basic ' + 'hugo:hungry'.encode('base64')).rstrip()
         ws.app.config['AUTHORIZATION']['world'] = []
         # check test is actually doing something
         response = self.app.get('/hugo/fixtures', headers={'Accept': JSON})
         assert response.status.startswith("403"), response.status
         # now start proper tests
-        response = self.app.get('/hugo/fixtures', headers={'Accept': JSON,
-            'Authorization': auth})
+        try:
+            response = self.app.get('/hugo/fixtures', headers={'Accept': JSON,'Authorization': auth})
+        except ValueError:
+            print '.'+ auth.replace('\n', '').replace('\r','') + '.',
+        
         assert response.status.startswith("200"), response.status
         
         ws.app.config['AUTH_FUNCTION'] = 'never_login'
-        auth = 'Basic ' + 'hugo:hungry'.encode('base64')
+        auth = ('Basic ' + 'hugo:hungry'.encode('base64')).rstrip()
         response = self.app.get('/hugo/fixtures', headers={'Accept': JSON,
             'Authorization': auth})
         assert response.status.startswith("401"), response.status
