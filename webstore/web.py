@@ -1,6 +1,7 @@
 import logging
+import os
 from datetime import datetime
-from flask import request, g, render_template, abort
+from flask import request, g, render_template, abort, send_from_directory
 
 from webstore.core import app
 from webstore.helpers import entry_point_function

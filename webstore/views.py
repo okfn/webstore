@@ -1,7 +1,7 @@
 import os
 import logging 
 
-from flask import Blueprint, current_app
+from flask import Blueprint, current_app, send_from_directory
 from flask import request, url_for, g, send_file
 
 from sqlalchemy.sql.expression import asc, desc
@@ -29,6 +29,8 @@ def jsonp_callback_register():
     # end up in the query string, we'll keep it around on the 
     # request global and then read it in the table generator.
     g.callback = request.args.get('_callback')
+
+
 
 def _get_table(user, database, table, format):
     """ Locate a named table or raise a 404. """
@@ -110,11 +112,23 @@ def databases(user, format=None):
         raise WebstoreException('Invalid name: %s' % ne.field,
                 format, state='error', code=400)
 
+def static(filename):
+    # The static file handling was zapped by some routing and so has been re-added 
+    # for development
+    directory = os.path.join( os.path.dirname(os.path.realpath(__file__)), 'static' )
+    return send_from_directory(directory, filename)
+
 @store.route('/<user>/<database>.<format>', methods=['GET', 'OPTIONS'])
 @store.route('/<user>/<database>', methods=['GET', 'OPTIONS'])
 @crossdomain(origin='*')
 def index(user, database, format=None):
     """ Give a list of all tables in the database. """
+    
+    if user == 'static':
+        print database
+        return static(database + "." + format)
+        
+    
     require(user, database, 'read', format)
     try:
         db = db_factory.create(user, database)
@@ -187,6 +201,7 @@ def sql(user, database, format=None):
         raise WebstoreException('DB Error: %s' % de.message,
                 format, state='error', code=400)
 
+    
 @store.route('/<user>/<database>.<format>', methods=['POST'])
 @store.route('/<user>/<database>', methods=['POST'])
 def create(user, database, format=None):
@@ -285,8 +300,7 @@ def row(user, database, table, row, format=None):
         raise WebstoreException(
             'Starting at offset 1 to allow header row',
             format, state='error', code=400)
-    params, select_args = _request_query(_table, request.args,
-                                         format)
+    params, select_args = _request_query(_table, request.args, format)
     select_args['limit'] = 1
     select_args['offset'] = row-1
     try:
