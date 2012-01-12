@@ -1,5 +1,5 @@
 import logging
-
+from datetime import datetime
 from flask import request, g, render_template, abort
 
 from webstore.core import app
@@ -36,7 +36,7 @@ def handle(any=None):
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    return render_template('index.html', copyright_end=datetime.now().year)
 
 app.register_blueprint(store)
 
